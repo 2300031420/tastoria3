@@ -4,6 +4,7 @@ import { CafeList } from "@/pages/CafeList";
 import { element } from "prop-types";
 import PreorderModal from './pages/preorderModal';
 import PreorderPage from './pages/preorderpage';
+import QRScanner from './components/QRScanner';
 
 export const routes = [
   {
@@ -25,9 +26,8 @@ export const routes = [
   
   {
     name: "Qr-scan",
-    //href:
-    //element:
-    style: { color: "#FF9800" }
+    path: "/scan",
+    element: <QRScanner />,
   },
   
    

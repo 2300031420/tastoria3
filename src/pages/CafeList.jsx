@@ -43,7 +43,7 @@ export function CafeList() {
         },
         {
           id: "ttmm",
-          name: "TTmm",
+          name: "TTMM",
           image: "/img/ttmm.jpg",
           description: "Gourmet burgers and fries",
           rating: 4.3,
@@ -84,27 +84,18 @@ export function CafeList() {
     navigate(`/book-slot/${cafeId}`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Typography>Loading cafes...</Typography>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-400 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <Typography variant="h2" color="blue-gray" className="mb-8 text-center">
+        <Typography variant="h2" color="blue-gray" className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">
           Book a Table
         </Typography>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {cafes.map((cafe) => (
             <Card key={cafe.id} className="overflow-hidden">
-              <CardHeader
-                floated={false}
-                className="h-48 m-0 rounded-b-none"
-              >
+              {/* Cafe Image */}
+              <CardHeader floated={false} className="relative h-48 sm:h-56 m-0 rounded-b-none">
                 <img
                   src={cafe.image}
                   alt={cafe.name}
@@ -117,27 +108,42 @@ export function CafeList() {
                   </Typography>
                 </div>
               </CardHeader>
-              <CardBody>
-                <Typography variant="h5" color="blue-gray" className="mb-2">
-                  {cafe.name}
-                </Typography>
-                <Typography color="gray" className="mb-2">
-                  {cafe.location}
-                </Typography>
-                <Typography color="gray" className="mb-4">
-                  Available Seats: {cafe.availableSeats}
-                </Typography>
-                <Button
-                  fullWidth
-                  onClick={() => handleBookTable(cafe.id)}
-                  className="mt-4"
-                >
-                  Book a Table
-                </Button>
+
+              <CardBody className="p-4 sm:p-6">
+                {/* Cafe Details */}
+                <div className="space-y-3 sm:space-y-4">
+                  <Typography variant="h5" color="blue-gray" className="text-lg sm:text-xl font-semibold">
+                    {cafe.name}
+                  </Typography>
+                  
+                  <Typography color="gray" className="text-sm sm:text-base">
+                    {cafe.location}
+                  </Typography>
+                  
+                  <Typography color="gray" className="text-sm sm:text-base">
+                    Available Seats: {cafe.availableSeats}
+                  </Typography>
+
+                  <Button
+                    fullWidth
+                    color="blue"
+                    onClick={() => handleBookTable(cafe.id)}
+                    className="mt-4 py-2.5 sm:py-3 text-sm sm:text-base"
+                  >
+                    Book a Table
+                  </Button>
+                </div>
               </CardBody>
             </Card>
           ))}
         </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <Typography className="text-lg sm:text-xl">Loading cafes...</Typography>
+          </div>
+        )}
       </div>
     </div>
   );

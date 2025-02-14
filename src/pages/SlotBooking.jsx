@@ -83,7 +83,7 @@ export function SlotBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-300 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-400 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto mt-20">
         <Card className="w-full shadow-xl">
           <CardBody className="p-8 md:p-12">

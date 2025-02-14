@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import { Input } from "@material-tailwind/react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
 function PreorderPage() {
   const { restaurantId } = useParams();
@@ -56,12 +58,28 @@ function PreorderPage() {
       },
       {
         id: 4,
-        name: 'Chocolate Cake',
+        name: 'Cake',
         price: 300,
         weight: '1kg',
         description: 'Decadent chocolate cake with rich frosting',
         category: 'desserts',
         image: '/img/cake.jpg'
+      },
+      {
+        id: 5,
+        name: 'Ice Cream',
+        price: 150,
+        description: 'Creamy ice cream with a variety of flavors',
+        category: 'desserts',
+        image: '/img/icecream.jpg'
+      },
+      {
+        id: 6,
+        name: 'Pasta',
+        price: 200,
+        description: 'Creamy pasta with a variety of sauces',
+        category: 'breakfast',
+        image: '/img/pasta.jpg'
       },
       // Add more items with appropriate categories
     ];
@@ -174,7 +192,8 @@ function PreorderPage() {
       localStorage.setItem(`cart_${userId}`, JSON.stringify(updatedCart));
       setItemsInCart(prev => ({ ...prev, [item.id]: false }));
       setAddedItemName(`${item.name} removed from cart`);
-      setQuantities(prev => ({ ...prev, [item.id]: 1 })); // Reset quantity to 1
+      setQuantities(prev => ({ ...prev, [item.id]: 1 }));
+      toast.success(`${item.name} removed from cart`);
     } else {
       // Add to cart
       const existingItemIndex = cartItems.findIndex(cartItem => cartItem.id === item.id);
@@ -189,6 +208,39 @@ function PreorderPage() {
       localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems));
       setItemsInCart(prev => ({ ...prev, [item.id]: true }));
       setAddedItemName(`${item.name} added to cart`);
+      
+      toast.custom(
+        (t) => (
+          <div className={`${
+            t.visible ? 'animate-enter' : 'animate-leave'
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-center">
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.name} added to cart
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-gray-200">
+              <button
+                onClick={() => {
+                  navigate('/cart');
+                  toast.dismiss(t.id);
+                }}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+              >
+                Go to Cart
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          duration: Infinity, // Make toast persist indefinitely
+          position: 'top-center',
+        }
+      );
     }
 
     window.dispatchEvent(new Event('cartUpdated'));
@@ -202,241 +254,118 @@ function PreorderPage() {
 
   return (
     <div className="bg-[#d0b290] min-h-screen">
-      {/* Notification Popup */}
-      {showNotification && (
-        <div className="fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-xl z-50 transform transition-all duration-300 animate-fade-in">
-          <div className="flex items-center gap-2">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span className="font-medium">
-              {addedItemName}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Logo */}
+      <div className="hidden md:block pt-4 pl-4">
+        <img 
+          src="/img/Tastoria.jpg"
+          alt="Tastoria Logo"
+          className="h-20 w-32 lg:h-26 lg:w-40"
+        />
+      </div>
 
-      {/* Main container - removed fixed width container to allow full width */}
-      <div className="relative">
-        {/* Logo */}
-        <div className="absolute top-4 left-4 z-10">
-          <img 
-            src="/img/Tastoria.jpg"
-            alt="Tastoria Logo"
-            className="h-26 w-40"
-          />
-        </div>
-
-        {/* Enhanced Search Bar with modern design */}
-        <div className="flex justify-center pt-24 pb-4">
-          <div className="relative w-full max-w-xl group">
+      {/* Main Content */}
+      <div className="flex-1 pb-28 md:pb-24">
+        {/* Search Bar */}
+        <div className="sticky top-0 z-10 bg-[#d0b290]/90 backdrop-blur-sm px-3 py-3 sm:px-4 sm:py-4">
+          <div className="relative w-full max-w-xl mx-auto">
             <Input
               type="text"
-              placeholder="Search for dishes, drinks, desserts..."
+              placeholder="Search menu..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-6 py-4 pl-14 pr-12 text-gray-700 bg-white/90 backdrop-blur-sm
-                border-2 border-gray-200/80 rounded-2xl shadow-lg focus:border-blue-400 
-                focus:outline-none focus:ring-4 focus:ring-blue-300/30 text-lg transition-all 
-                duration-300 hover:border-blue-300 hover:shadow-xl
-                group-hover:shadow-lg group-hover:border-blue-300/50"
+              className="w-full px-4 py-2.5 pl-11 text-sm 
+                text-gray-700 bg-white/95 backdrop-blur-sm border border-gray-200/80 
+                rounded-full shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                transition-all duration-200"
               labelProps={{
                 className: "hidden",
               }}
-              containerProps={{
-                className: "min-w-[100px]",
-              }}
             />
-            <div className="absolute left-5 top-1/2 transform -translate-y-1/2 flex items-center">
-              <MagnifyingGlassIcon className="h-6 w-6 text-blue-500 transition-transform duration-300 
-                group-hover:scale-110 group-hover:text-blue-600" />
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 rounded-full
-                  bg-gray-100/80 hover:bg-red-100 text-gray-400 hover:text-red-500
-                  transition-all duration-300 hover:scale-110"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            )}
-            {/* Search suggestions - appears when typing */}
-            {searchQuery && (
-              <div className="absolute mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100
-                overflow-hidden transition-all duration-300 z-50">
-                <div className="p-2">
-                  <div className="text-xs text-gray-500 px-3 py-1">Suggested items</div>
-                  {filteredMenu.slice(0, 4).map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setSearchQuery(item.name);
-                        // Additional handling if needed
-                      }}
-                      className="w-full px-3 py-2 text-left hover:bg-blue-50 rounded-lg
-                        flex items-center gap-3 transition-colors duration-200"
-                    >
-                      <img 
-                        src={item.image} 
-                        alt={item.name}
-                        className="w-10 h-10 rounded-lg object-cover"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-gray-800">{item.name}</div>
-                        <div className="text-xs text-gray-500">{item.category}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Search decoration elements */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 
-              to-pink-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity 
-              duration-500 -z-10"></div>
           </div>
         </div>
 
-        {/* Main Content Layout */}
-        <div className="flex">
-          {/* Filters Sidebar - Fixed to left */}
-          <div className="w-64 min-w-[16rem] h-[calc(100vh-6rem)] sticky top-4 left-0 ml-4">
-            <div className="bg-white rounded-lg shadow-lg p-4 h-full overflow-y-auto">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">Categories</h2>
-              <div className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2
-                      ${selectedCategory === category.id 
-                        ? 'bg-blue-500 text-white' 
-                        : 'hover:bg-gray-100 text-gray-700'
-                      }`}
-                  >
-                    <span>{category.icon}</span>
-                    <span>{category.name}</span>
-                    {selectedCategory === category.id && (
-                      <span className="ml-auto text-sm">
-                        ({filteredMenu.length})
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Menu Grid - Updated with wider cards */}
-          <div className="flex-1 px-4 max-w-[1600px] mx-auto">
-            <div className="ml-4">
-              <h1 className="text-2xl font-bold mb-4 text-gray-800">
-                {categories.find(c => c.id === selectedCategory)?.name || 'Menu Items'}
-              </h1>
-              
-              {filteredMenu.length === 0 ? (
-                <div className="text-center text-gray-600 text-xl mt-4 bg-white p-6 rounded-lg shadow-md">
-                  No items found matching your criteria
+        {/* Menu Grid */}
+        <div className="px-3 sm:px-4 pt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
+            {filteredMenu.map((item) => (
+              <div key={item.id} className="bg-white rounded-2xl shadow-md overflow-hidden transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]">
+                <div className="relative h-48 sm:h-52">
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
+                    <span className="text-gray-800 font-semibold">₹{item.price}</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-8">
-                  {filteredMenu.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="bg-white rounded-xl shadow-lg overflow-hidden w-full transform 
-                        transition-all duration-300 hover:scale-105 hover:shadow-xl"
-                    >
-                      <div className="relative h-56">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute top-3 right-3 bg-white px-3 py-1.5 rounded-full shadow-md">
-                          <span className="text-gray-800 font-semibold text-lg">₹{item.price}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-2xl font-bold text-gray-800 mb-2">{item.name}</h3>
-                            <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
-                              {item.category}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <p className="text-gray-600 text-base mb-4 line-clamp-2">{item.description}</p>
-                        {item.weight && (
-                          <p className="text-gray-600 text-sm mb-3">Weight: {item.weight}</p>
-                        )}
-                        
-                        <div className="flex justify-between items-center mt-4">
-                          <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
-                            <button 
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-100 w-8 h-8 
-                                flex items-center justify-center rounded-full transition-colors 
-                                font-bold text-xl"
-                            >
-                              -
-                            </button>
-                            <span className="w-10 text-center font-medium text-xl">
-                              {quantities[item.id] || 1}
-                            </span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="text-green-500 hover:text-green-700 hover:bg-green-100 
-                                w-8 h-8 flex items-center justify-center rounded-full 
-                                transition-colors font-bold text-xl"
-                            >
-                              +
-                            </button>
-                          </div>
-                          
-                          <button
-                            onClick={() => addToCart(item)}
-                            className={`px-6 py-2 rounded-lg transition-colors text-base font-semibold ${
-                              itemsInCart[item.id]
-                                ? 'bg-red-500 text-white hover:bg-red-600'
-                                : 'bg-blue-500 text-white hover:bg-blue-600'
-                            }`}
-                          >
-                            {itemsInCart[item.id] ? 'Remove' : 'Add'}
-                          </button>
-                        </div>
-                      </div>
+                
+                <div className="p-4">
+                  <h3 className="font-bold text-gray-800 text-lg mb-1">{item.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
+                  
+                  <div className="flex gap-2">
+                    <div className="flex items-center justify-center gap-1 bg-gray-50 rounded-full p-1">
+                      <button 
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-600 
+                          rounded-full hover:bg-gray-100 transition-colors duration-200"
+                      >-</button>
+                      <span className="w-8 text-center font-medium text-gray-800">{quantities[item.id] || 1}</span>
+                      <button 
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="w-8 h-8 flex items-center justify-center text-green-500 hover:text-green-600 
+                          rounded-full hover:bg-gray-100 transition-colors duration-200"
+                      >+</button>
                     </div>
-                  ))}
+                    
+                    <button
+                      onClick={() => addToCart(item)}
+                      className={`flex-1 py-2 px-4 rounded-full text-sm font-medium
+                        transition-all duration-200 ${
+                          itemsInCart[item.id]
+                            ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
+                            : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
+                        }`}
+                    >
+                      {itemsInCart[item.id] ? 'Remove' : 'Add to Cart'}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Categories Bar */}
+      <div className="fixed bottom-0 left-0 w-full z-20">
+        <div className="bg-white/95 backdrop-blur-sm p-3 shadow-lg border-t border-gray-200/50">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-safe snap-x snap-mandatory">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 
+                  rounded-full text-sm font-medium snap-start
+                  transition-all duration-200 ${
+                    selectedCategory === category.id 
+                      ? 'bg-blue-500 text-white shadow-md scale-105'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                <span className="text-lg">{category.icon}</span>
+                <span>{category.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Toaster />
     </div>
   );
 }
