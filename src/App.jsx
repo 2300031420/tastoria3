@@ -7,6 +7,8 @@ import PreorderPage from './pages/preorderpage';
 import Cart from "./pages/cart";
 import { CafeList } from "./pages/CafeList";
 import { SlotBooking } from "./pages/SlotBooking";
+import { ChatBot } from './components/ChatBot';
+import ProtectedRoute from './components/ProtectedRoute';
 
 
 
@@ -30,12 +32,20 @@ function App() {
         <Route path="*" element={<Navigate to="/home" replace />} />
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/sign-up" element={<SignUp />} />
-        <Route path="/preorder/:restaurantId" element={<PreorderPage />} />
+        <Route 
+          path="/preorder" 
+          element={
+            <ProtectedRoute>
+              <PreorderPage />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/cart" element={<Cart />} />
         <Route path="/cafes" element={<CafeList />} />
         <Route path="/book-slot/:cafeId" element={<SlotBooking />} />
         
       </Routes>
+      <ChatBot />
     </>
   );
 }

@@ -5,50 +5,99 @@ import {
   Typography,
 } from "@material-tailwind/react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import app from "../firebase/config";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { loginUser } from "../services/authServices";
+import { getAuth, signInWithPopup } from "firebase/auth";
+import app, { googleProvider, facebookProvider } from "../firebase/config";
 
 export function SignIn() {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = getAuth(app);
-  const googleProvider = new GoogleAuthProvider();
-  const facebookProvider = new FacebookAuthProvider();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const handleSuccessfulLogin = () => {
-    const redirectPath = localStorage.getItem('redirectAfterLogin');
-    if (redirectPath) {
-      localStorage.removeItem('redirectAfterLogin'); // Clean up
-      navigate(redirectPath);
-    } else {
-      navigate('/dashboard');
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     try {
+      setError("");
+      console.log("Starting Google sign in...");
+      
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign-in successful:", result.user);
-      handleSuccessfulLogin();
+      console.log("Google sign in successful:", result.user);
+
+      // Store user data even if backend call fails
+      const userData = {
+        name: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+        uid: result.user.uid
+      };
+
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      try {
+        // Attempt to communicate with backend
+        const token = await result.user.getIdToken();
+        const response = await fetch('http://localhost:5001/api/users/firebase', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            token,
+            ...userData
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Update stored user data with any additional info from backend
+          localStorage.setItem('user', JSON.stringify({
+            ...userData,
+            ...data.user
+          }));
+        }
+      } catch (backendError) {
+        console.error('Backend communication error:', backendError);
+        // Continue with navigation even if backend call fails
+      }
+
+      // Navigate regardless of backend success
+      const returnUrl = location.state?.returnUrl || '/preorder';
+      console.log('Navigating to:', returnUrl);
+      navigate(returnUrl, { replace: true });
+      
     } catch (error) {
-      console.error("Google sign-in error:", error);
+      console.error('Google sign in error:', error);
+      setError("Google sign-in failed. Please try again.");
     }
   };
 
   const handleFacebookSignIn = async () => {
     try {
       const result = await signInWithPopup(auth, facebookProvider);
-      console.log("Facebook sign-in successful:", result.user);
-      handleSuccessfulLogin();
+      const token = await result.user.getIdToken();
+      
+      const response = await fetch('http://localhost:5001/api/users/firebase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token })
+      });
+
+      if (!response.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = data.redirectUrl || '/preorder';
+      
     } catch (error) {
-      setError(error.message);
+      console.error('Facebook sign in error:', error);
+      setError("Facebook sign-in failed. Please try again.");
     }
   };
 
@@ -57,44 +106,45 @@ export function SignIn() {
     setError("");
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // After successful sign in, redirect to return URL or home
-      const returnUrl = location.state?.returnUrl || '/home';
-      console.log("Redirecting to:", returnUrl); // Debug log
-      navigate(returnUrl);
+      if (!username || !password) {
+        setError("Please provide both username and password");
+        return;
+      }
+
+      const response = await loginUser({ username, password });
+      
+      if (response.success) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+        const returnUrl = location.state?.returnUrl || '/preorder';
+        navigate(returnUrl, { replace: true });
+      } else {
+        setError(response.message || "Invalid credentials");
+      }
     } catch (error) {
       console.error("Sign in error:", error);
-      setError(error.message);
+      setError("Login failed. Please try again.");
     }
   };
 
+  // Check authentication status on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // If user is already signed in, redirect to return URL or home
-        const returnUrl = location.state?.returnUrl || '/home';
-        navigate(returnUrl);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [auth, navigate, location]);
-
-  // Add early return if authenticated
-  if (isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#d0b290]">
-        <div className="text-xl">Already signed in. Redirecting...</div>
-      </div>
-    );
-  }
+    const user = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+    
+    if (user && token) {
+      const returnUrl = location.state?.returnUrl || '/home';
+      navigate(returnUrl, { replace: true });
+    }
+  }, [navigate, location]);
 
   return (
     <section className="m-8 flex gap-4">
       <div className="w-full lg:w-3/5 mt-24">
         <div className="text-center">
           <Typography variant="h2" className="font-bold mb-4">Sign In</Typography>
-          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">Enter your email and password to Sign In.</Typography>
+          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
+            Enter your username and password to Sign In
+          </Typography>
         </div>
         <form className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2" onSubmit={handleSubmit}>
           {error && (
@@ -104,14 +154,14 @@ export function SignIn() {
           )}
           <div className="mb-1 flex flex-col gap-6">
             <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
-              Your email
+              Username
             </Typography>
             <Input
               size="lg"
-              placeholder="name@mail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
               labelProps={{
                 className: "before:content-none after:content-none",
               }}
@@ -125,53 +175,16 @@ export function SignIn() {
               placeholder="********"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
+              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
               labelProps={{
                 className: "before:content-none after:content-none",
               }}
             />
           </div>
-          <Checkbox
-            label={
-              <Typography
-                variant="small"
-                color="gray"
-                className="flex items-center justify-start font-medium"
-              >
-                I agree the&nbsp;
-                <a
-                  href="#"
-                  className="font-normal text-black transition-colors hover:text-gray-900 underline"
-                >
-                  Terms and Conditions
-                </a>
-              </Typography>
-            }
-            containerProps={{ className: "-ml-2.5" }}
-          />
-          <Button className="mt-6" fullWidth>
+          <Button className="mt-6" fullWidth type="submit">
             Sign In
           </Button>
-
-          <div className="flex items-center justify-between gap-2 mt-6">
-            <Checkbox
-              label={
-                <Typography
-                  variant="small"
-                  color="gray"
-                  className="flex items-center justify-start font-medium"
-                >
-                  Subscribe me to newsletter
-                </Typography>
-              }
-              containerProps={{ className: "-ml-2.5" }}
-            />
-            <Typography variant="small" className="font-medium text-gray-900">
-              <a href="#">
-                Forgot Password
-              </a>
-            </Typography>
-          </div>
+          
           <div className="space-y-4 mt-8">
             <Button 
               size="lg" 
@@ -208,20 +221,20 @@ export function SignIn() {
               <span>Sign in With Facebook</span>
             </Button>
           </div>
+          
           <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
             Not registered?
             <Link to="/sign-up" className="text-gray-900 ml-1">Create account</Link>
           </Typography>
         </form>
-
       </div>
       <div className="w-2/5 h-full hidden lg:block">
         <img
           src="/img/Tastoria.jpg"
           className="h-full w-full object-cover rounded-3xl"
+          alt="Tastoria"
         />
       </div>
-
     </section>
   );
 }

@@ -22,6 +22,7 @@ const routes = [
 export function Navbar({ brandName, routes, action }) {
   const [openNav, setOpenNav] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [user, setUser] = useState(null);
   const location = useLocation();
   const isHomePage = location.pathname === '/';
   const auth = getAuth();
@@ -30,22 +31,57 @@ export function Navbar({ brandName, routes, action }) {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
-      navigate('/');
+      // Sign out from Firebase if using Firebase auth
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+      
+      // Clear all auth-related data
+      localStorage.removeItem("user");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem(`cart_${auth.currentUser?.uid}`);
+      
+      // Reset states
+      setIsAuthenticated(false);
+      setUser(null);
+      setCartQuantity(0);
+
+      // Navigate to home page
+      window.location.href = '/';
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
+  useEffect(() => {
+    // Check both Firebase auth and local storage for authentication
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const storedUser = localStorage.getItem("user");
+      const isFirebaseAuth = !!firebaseUser;
+      const isLocalAuth = !!storedUser;
+      
+      // Set authentication state based on either Firebase or local auth
+      setIsAuthenticated(isFirebaseAuth || isLocalAuth);
+      
+      if (isFirebaseAuth) {
+        // Firebase user takes precedence
+        setUser(firebaseUser);
+        localStorage.setItem("user", JSON.stringify({
+          email: firebaseUser.email,
+          uid: firebaseUser.uid
+        }));
+      } else if (isLocalAuth) {
+        // Use stored user data for manual login
+        setUser(JSON.parse(storedUser));
+      } else {
+        setUser(null);
+      }
     });
 
     return () => unsubscribe();
   }, [auth]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     window.addEventListener(
       "resize",
       () => window.innerWidth >= 960 && setOpenNav(false)
@@ -69,7 +105,7 @@ export function Navbar({ brandName, routes, action }) {
     // Initial cart quantity update
     updateCartQuantity();
 
-    // Listen for storage changes (when cart is updated in other components)
+    // Listen for storage changes
     const handleStorageChange = (e) => {
       if (e.key && e.key.startsWith('cart_')) {
         updateCartQuantity();
@@ -97,17 +133,6 @@ export function Navbar({ brandName, routes, action }) {
     };
   }, [auth]);
 
-  const handleNavClick = (e, path) => {
-    if (path.startsWith('/#')) {
-      e.preventDefault();
-      const element = document.getElementById(path.substring(2));
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
-      setOpenNav(false);
-    }
-  };
-
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 text-inherit lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
       {routes.map(({ name, path, icon, href, target }) => (
@@ -124,28 +149,37 @@ export function Navbar({ brandName, routes, action }) {
               target={target}
               className="flex items-center gap-1 p-1 font-bold"
             >
-              {icon &&
-                React.createElement(icon, {
-                  className: "w-[18px] h-[18px] opacity-75 mr-1",
-                })}
+              {icon && React.createElement(icon, {
+                className: "w-[18px] h-[18px] opacity-75 mr-1",
+              })}
               {name}
             </a>
           ) : (
             <Link
               to={path}
-              onClick={(e) => handleNavClick(e, path)}
               target={target}
               className="flex items-center gap-1 p-1 font-bold"
             >
-              {icon &&
-                React.createElement(icon, {
-                  className: "w-[18px] h-[18px] opacity-75 mr-1",
-                })}
+              {icon && React.createElement(icon, {
+                className: "w-[18px] h-[18px] opacity-75 mr-1",
+              })}
               {name}
             </Link>
           )}
         </Typography>
       ))}
+      {isAuthenticated && user?.email && (
+        <Typography
+          as="li"
+          variant="small"
+          color="inherit"
+          className="capitalize"
+        >
+          <span className="p-1 font-bold">
+           {/*Welcome, {user.email}*/}
+          </span>
+        </Typography>
+      )}
     </ul>
   );
 
@@ -164,7 +198,7 @@ export function Navbar({ brandName, routes, action }) {
         <div className="hidden lg:flex items-center ml-auto">{navList}</div>
         
         {isAuthenticated ? (
-          <div className="hidden gap-2 lg:flex">
+          <div className="hidden gap-2 lg:flex items-center">
             <Button 
               variant="text" 
               size="sm" 
@@ -173,34 +207,26 @@ export function Navbar({ brandName, routes, action }) {
             >
               Sign Out
             </Button>
+            <Link to="/cart" className="relative">
+              <ShoppingCartIcon className="h-6 w-6 text-white" />
+              {cartQuantity > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                  {cartQuantity}
+                </span>
+              )}
+            </Link>
           </div>
         ) : (
-          <>
-            <div className="hidden gap-2 lg:flex">
-              <Link
-                to="/sign-in"
-                className="flex items-center"
-              >
-                <Button variant="text" size="sm" color="white" fullWidth>
-                  Sign In
-                </Button>
-              </Link>
-              {React.cloneElement(action, {
-                className: "hidden lg:inline-block",
-              })}
-            </div>
-          </>
-        )}
-        
-        {isAuthenticated && (
-          <Link to="/cart" className="flex items-center gap-1 relative">
-            <ShoppingCartIcon className="h-6 w-6 text-white" />
-            {cartQuantity > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                {cartQuantity}
-              </span>
-            )}
-          </Link>
+          <div className="hidden gap-2 lg:flex">
+            <Link to="/sign-in">
+              <Button variant="text" size="sm" color="white">
+                Sign In
+              </Button>
+            </Link>
+            {React.cloneElement(action, {
+              className: "hidden lg:inline-block",
+            })}
+          </div>
         )}
         
         <IconButton
@@ -217,6 +243,7 @@ export function Navbar({ brandName, routes, action }) {
           )}
         </IconButton>
       </div>
+      
       <MobileNav
         className="rounded-xl bg-white px-4 pt-2 pb-4 text-blue-gray-900"
         open={openNav}
@@ -224,20 +251,25 @@ export function Navbar({ brandName, routes, action }) {
         <div className="container mx-auto">
           {navList}
           {isAuthenticated ? (
-            <Button 
-              variant="text" 
-              size="sm" 
-              fullWidth
-              onClick={handleSignOut}
-            >
-              Sign Out
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button 
+                variant="text" 
+                size="sm" 
+                fullWidth
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+              <Link to="/cart" className="flex justify-center">
+                <ShoppingCartIcon className="h-6 w-6" />
+                {cartQuantity > 0 && (
+                  <span className="ml-1">{cartQuantity}</span>
+                )}
+              </Link>
+            </div>
           ) : (
             <>
-              <Link
-                to="/sign-in"
-                className="mb-2 block"
-              >
+              <Link to="/sign-in" className="mb-2 block">
                 <Button variant="text" size="sm" fullWidth>
                   Sign In
                 </Button>
@@ -256,9 +288,7 @@ export function Navbar({ brandName, routes, action }) {
 Navbar.defaultProps = {
   brandName: <img src="/img/Tastoria.jpg" alt="Tastoria Logo" className="h-8" />,
   action: (
-    <Link
-      to="/sign-up"
-    >
+    <Link to="/sign-up">
       <Button variant="gradient" size="sm" fullWidth>
         Sign Up
       </Button>
