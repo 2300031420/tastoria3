@@ -1,6 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
+import { useCallback } from 'react';
+
+const restaurants = [
+  {
+    id: "hangout-cafe",
+    name: "Hangout Cafe",
+    image: "/img/Hangout.jpg",
+    description: "Experience authentic Italian cuisine in a cozy atmosphere. Known for our wood-fired pizzas and homemade pasta dishes.",
+    rating: 4.5,
+    reviews: 128
+  },
+  {
+    id: "ttmm",
+    name: "TTMM",
+    image: "/img/ttmm.jpg",
+    description: "Gourmet burgers and artisanal fries in a modern setting. Our signature sauces and locally-sourced ingredients make every bite special.",
+    rating: 4.3,
+    reviews: 95
+  },
+  {
+    id: "cafe-house",
+    name: "Cafe House",
+    image: "/img/cafeHouse.jpg",
+    description: "A perfect blend of traditional and contemporary Japanese cuisine. Fresh sushi, sashimi, and innovative fusion dishes.",
+    rating: 4.7,
+    reviews: 156
+  }
+];
 
 function PreorderModal() {
   const [selectedRestaurant, setSelectedRestaurant] = useState('');
@@ -10,66 +38,37 @@ function PreorderModal() {
   const navigate = useNavigate();
   const auth = getAuth();
 
+  const navigateWithTransition = useCallback((to) => {
+    if (typeof window.requestIdleCallback === 'function') {
+      requestIdleCallback(() => navigate(to, { replace: true }));
+    } else {
+      setTimeout(() => navigate(to, { replace: true }), 0);
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setAuthStatus('authenticated');
         setShowLoginPopup(true);
-        setTimeout(() => {
-          setShowLoginPopup(false);
-        }, 3000);
+        setTimeout(() => setShowLoginPopup(false), 3000);
       } else {
         localStorage.setItem('redirectAfterLogin', '/preorder');
-        navigate('/sign-in', { replace: true });
+        navigateWithTransition('/sign-in');
       }
     });
 
     return () => unsubscribe();
-  }, [auth, navigate]);
-
-  const restaurants = [
-    {
-      id: '1',
-      name: 'HangOut',
-      image: '/img/Hangout.jpg',
-      description: 'A cozy café known for its artisanal coffee and fresh pastries',
-      rating: 4.5,
-      reviews: 128
-    },
-    {
-      id: '2',
-      name: 'TTMM',
-      image: '/img/ttmm.jpg',
-      description: 'Modern fusion cuisine with a focus on healthy ingredients',
-      rating: 4.3,
-      reviews: 95
-    },
-    {
-      id: '3',
-      name: 'Cafe House',
-      image: '/img/cafeHouse.jpg',
-      description: 'Classic comfort food and specialty beverages in a rustic setting',
-      rating: 4.7,
-      reviews: 156
-    },
-    {
-      id: '4',
-      name: 'Golden Bakery',
-      image: '/img/golden.jpg',
-      description: 'Authentic Indian cuisine',
-      rating: 4.4,
-      reviews: 100
-    }
-  ];
+  }, [auth, navigateWithTransition]);
 
   const handleRestaurantSelect = (e) => {
     e.preventDefault();
     if (selectedRestaurant) {
       if (authStatus === 'authenticated') {
-        navigate(`/preorder/${selectedRestaurant}`);
+        navigateWithTransition(`/preorder/${selectedRestaurant}`);
       } else {
         localStorage.setItem('redirectAfterLogin', `/preorder/${selectedRestaurant}`);
-        navigate('/sign-in');
+        navigateWithTransition('/sign-in');
       }
       setIsModalOpen(false);
     }

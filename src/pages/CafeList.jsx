@@ -59,6 +59,15 @@ export function CafeList() {
           location: "Parbhani",
           availableSeats: 25
         },
+        {
+          id:"Golden-Bakery",
+          name:"Golden-Bakery",
+          image:"/img/golden.jpg",
+          description:"Delicious pastries and coffee",
+          rating:4.2,
+          location:"Parbhani",
+          availableSeats:10
+        }
         // ... your existing cafes
       ];
 

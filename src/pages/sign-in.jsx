@@ -5,98 +5,65 @@ import {
   Typography,
 } from "@material-tailwind/react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import app from "../firebase/config";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
 import { useState, useEffect } from "react";
-import { loginUser } from "../services/authServices";
-import { getAuth, signInWithPopup } from "firebase/auth";
-import app, { googleProvider, facebookProvider } from "../firebase/config";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export function SignIn() {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = getAuth(app);
-  const [username, setUsername] = useState("");
+  const googleProvider = new GoogleAuthProvider();
+  const facebookProvider = new FacebookAuthProvider();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  const handleSuccessfulLogin = (user) => {
+    try {
+      // Store user data in localStorage
+      const userData = {
+        email: user.email,
+        uid: user.uid,
+        displayName: user.displayName || email.split('@')[0],
+        photoURL: user.photoURL
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', user.accessToken || 'mock-jwt-token');
+
+      // Navigate to the return URL or preorder page
+      const returnUrl = location.state?.returnUrl || '/preorder';
+      console.log('Navigating to:', returnUrl);
+      navigate(returnUrl, { replace: true });
+    } catch (error) {
+      console.error('Error during login:', error);
+      setError('An error occurred during login. Please try again.');
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
       setError("");
-      console.log("Starting Google sign in...");
-      
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign in successful:", result.user);
-
-      // Store user data even if backend call fails
-      const userData = {
-        name: result.user.displayName,
-        email: result.user.email,
-        photoURL: result.user.photoURL,
-        uid: result.user.uid
-      };
-
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      try {
-        // Attempt to communicate with backend
-        const token = await result.user.getIdToken();
-        const response = await fetch('http://localhost:5001/api/users/firebase', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            token,
-            ...userData
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Update stored user data with any additional info from backend
-          localStorage.setItem('user', JSON.stringify({
-            ...userData,
-            ...data.user
-          }));
-        }
-      } catch (backendError) {
-        console.error('Backend communication error:', backendError);
-        // Continue with navigation even if backend call fails
-      }
-
-      // Navigate regardless of backend success
-      const returnUrl = location.state?.returnUrl || '/preorder';
-      console.log('Navigating to:', returnUrl);
-      navigate(returnUrl, { replace: true });
-      
+      console.log("Google sign-in successful:", result.user);
+      handleSuccessfulLogin(result.user);
     } catch (error) {
-      console.error('Google sign in error:', error);
+      console.error("Google sign-in error:", error);
       setError("Google sign-in failed. Please try again.");
     }
   };
 
   const handleFacebookSignIn = async () => {
     try {
+      setError("");
       const result = await signInWithPopup(auth, facebookProvider);
-      const token = await result.user.getIdToken();
-      
-      const response = await fetch('http://localhost:5001/api/users/firebase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token })
-      });
-
-      if (!response.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('user', JSON.stringify(data.user));
-      window.location.href = data.redirectUrl || '/preorder';
-      
+      console.log("Facebook sign-in successful:", result.user);
+      handleSuccessfulLogin(result.user);
     } catch (error) {
-      console.error('Facebook sign in error:', error);
+      console.error("Facebook sign-in error:", error);
       setError("Facebook sign-in failed. Please try again.");
     }
   };
@@ -106,45 +73,52 @@ export function SignIn() {
     setError("");
     
     try {
-      if (!username || !password) {
-        setError("Please provide both username and password");
+      if (!email || !password) {
+        setError("Please provide both email and password");
         return;
       }
 
-      const response = await loginUser({ username, password });
-      
-      if (response.success) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-        const returnUrl = location.state?.returnUrl || '/preorder';
-        navigate(returnUrl, { replace: true });
-      } else {
-        setError(response.message || "Invalid credentials");
-      }
+      // Try Firebase authentication first
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      handleSuccessfulLogin(result.user);
     } catch (error) {
       console.error("Sign in error:", error);
-      setError("Login failed. Please try again.");
+      setError("Invalid email or password");
     }
   };
 
+  // Clear any existing auth data on component mount
+  useEffect(() => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('redirectAfterLogin');
+  }, []);
+
   // Check authentication status on mount
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    
-    if (user && token) {
-      const returnUrl = location.state?.returnUrl || '/home';
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        handleSuccessfulLogin(user);
+      }
+    });
+
+    // Check if user is already authenticated via localStorage
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
+      const returnUrl = location.state?.returnUrl || '/preorder';
       navigate(returnUrl, { replace: true });
     }
-  }, [navigate, location]);
+
+    return () => unsubscribe();
+  }, [auth, navigate, location]);
 
   return (
     <section className="m-8 flex gap-4">
       <div className="w-full lg:w-3/5 mt-24">
         <div className="text-center">
           <Typography variant="h2" className="font-bold mb-4">Sign In</Typography>
-          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
-            Enter your username and password to Sign In
-          </Typography>
+          <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">Enter your email and password to Sign In.</Typography>
         </div>
         <form className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2" onSubmit={handleSubmit}>
           {error && (
@@ -154,14 +128,14 @@ export function SignIn() {
           )}
           <div className="mb-1 flex flex-col gap-6">
             <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
-              Username
+              Your email
             </Typography>
             <Input
               size="lg"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              placeholder="name@mail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
               labelProps={{
                 className: "before:content-none after:content-none",
               }}
@@ -175,7 +149,7 @@ export function SignIn() {
               placeholder="********"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              className=" !border-t-blue-gray-200 focus:!border-t-gray-900"
               labelProps={{
                 className: "before:content-none after:content-none",
               }}
@@ -184,7 +158,7 @@ export function SignIn() {
           <Button className="mt-6" fullWidth type="submit">
             Sign In
           </Button>
-          
+
           <div className="space-y-4 mt-8">
             <Button 
               size="lg" 
@@ -221,7 +195,6 @@ export function SignIn() {
               <span>Sign in With Facebook</span>
             </Button>
           </div>
-          
           <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
             Not registered?
             <Link to="/sign-up" className="text-gray-900 ml-1">Create account</Link>

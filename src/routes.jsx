@@ -23,17 +23,10 @@ export const routes = [
     element: <PreorderModal />,
     style: { color: "#2196F3" }
   },
-  
   {
     name: "Qr-scan",
     path: "/scan",
     element: <QRScanner />,
-  },
-  
-   
-  {
-    path: '/preorder',
-    element: <PreorderModal />,
   },
   {
     path: '/preorder/:restaurantId',

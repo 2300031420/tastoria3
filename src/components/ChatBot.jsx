@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -7,21 +6,20 @@ import {
   Input,
   Button,
   Typography,
-  IconButton,
 } from "@material-tailwind/react";
-
-const FLASK_API_ENDPOINT = 'http://localhost:5000/api/chat';
+import { getAuth } from "firebase/auth";
 
 export function ChatBot() {
     const [messages, setMessages] = useState([{ 
-        text: "👋 Hello! I'm your Tastoria assistant. How can I help you today?", 
+        text: "👋 Hello! I'm your Tastoria assistant. How can I help you today? You can ask me about menus, reservations, or our locations!", 
         sender: "bot" 
     }]);
     const [input, setInput] = useState("");
     const [isOpen, setIsOpen] = useState(false);
-    const [isConnected, setIsConnected] = useState(true);
+    const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
+    const auth = getAuth();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,82 +29,218 @@ export function ChatBot() {
         scrollToBottom();
     }, [messages]);
 
-    useEffect(() => {
-        checkConnection();
-    }, []);
+    const getBotResponse = (message) => {
+        message = message.toLowerCase().trim();
 
-    const checkConnection = async () => {
+        // Direct cafe navigation queries
+        if (message.includes("navigate") || message.includes("go to") || message.includes("take me to")) {
+            if (message.includes("ttmm")) {
+                return {
+                    text: "I'll take you to TTMM's page right away!",
+                    action: "navigate",
+                    cafeId: "ttmm",
+                    requiresAuth: true
+                };
+            } else if (message.includes("hangout")) {
+                return {
+                    text: "I'll show you Hangout Cafe's page!",
+                    action: "navigate",
+                    cafeId: "hangout-cafe",
+                    requiresAuth: true
+                };
+            } else if (message.includes("cafe house")) {
+                return {
+                    text: "I'll take you to Cafe House's page!",
+                    action: "navigate",
+                    cafeId: "cafe-house",
+                    requiresAuth: true
+                };
+            }
+        }
+
+        // Cafe name mentions without specific navigation intent
+        if (message.includes("ttmm")) {
+            return {
+                text: "I'll take you to TTMM's page!",
+                action: "navigate",
+                cafeId: "ttmm",
+                requiresAuth: true
+            };
+        } else if (message.includes("hangout")) {
+            return {
+                text: "I'll show you Hangout Cafe's page!",
+                action: "navigate",
+                cafeId: "hangout-cafe",
+                requiresAuth: true
+            };
+        } else if (message.includes("cafe house")) {
+            return {
+                text: "I'll take you to Cafe House's page!",
+                action: "navigate",
+                cafeId: "cafe-house",
+                requiresAuth: true
+            };
+        }
+        else if (message.includes("golden bakery")) {
+            return {
+                text: "I'll take you to Golden Bakery's page!",
+                action: "navigate",
+                cafeId: "golden-bakery",
+                requiresAuth: true
+            };
+        }
+        // Menu-related queries
+        if (message.includes("menu")) {
+            if (message.includes("hangout")) {
+                return {
+                    text: "I'll show you Hangout Cafe's menu right away!",
+                    action: "navigate",
+                    cafeId: "hangout-cafe",
+                    requiresAuth: true
+                };
+            } else if (message.includes("ttmm")) {
+                return {
+                    text: "I'll take you to TTMM's menu!",
+                    action: "navigate",
+                    cafeId: "ttmm",
+                    requiresAuth: true
+                };
+            } else if (message.includes("cafe house")) {
+                return {
+                    text: "Let me show you Cafe House's menu!",
+                    action: "navigate",
+                    cafeId: "cafe-house",
+                    requiresAuth: true
+                };
+            } else {
+                return {
+                    text: "We have several cafes with unique menus. Which one would you like to see? We have:\n• Hangout Cafe\n• TTMM\n• Cafe House"
+                };
+            }
+        }
+
+        // Booking-related queries
+        if (message.includes("book") || message.includes("reservation") || message.includes("slot")) {
+            if (message.includes("ttmm")) {
+                return {
+                    text: "I'll take you to TTMM's slot booking page!",
+                    action: "navigate",
+                    cafeId: "ttmm-slot",
+                    requiresAuth: true
+                };
+            }
+            return {
+                text: "I can help you book a table. Which cafe would you like to make a reservation at? Currently, table booking is available at TTMM."
+            };
+        }
+
+        // Location queries
+        if (message.includes("location") || message.includes("where") || message.includes("address")) {
+            return {
+                text: "All our cafes are located in Parbhani. Here are the specific locations:\n• Hangout Cafe: Near City Center\n• TTMM: College Road\n• Cafe House: Main Street"
+            };
+        }
+
+        // Hours/timing queries
+        if (message.includes("hour") || message.includes("timing") || message.includes("open") || message.includes("close")) {
+            return {
+                text: "Our cafes are open daily from 9 AM to 11 PM. Happy hours are from 3 PM to 6 PM with special discounts!"
+            };
+        }
+
+        // Special offers/deals
+        if (message.includes("offer") || message.includes("deal") || message.includes("discount")) {
+            return {
+                text: "Current offers:\n• Student discount: 10% off with valid ID\n• Happy Hours: 20% off from 3-6 PM\n• Weekend special: Free dessert with meals above ₹500"
+            };
+        }
+
+        // Help or general queries
+        if (message.includes("help") || message.includes("what") || message.includes("how")) {
+            return {
+                text: "I can help you with:\n• Viewing restaurant menus\n• Making table reservations\n• Finding cafe locations\n• Information about special offers\n• Opening hours\nWhat would you like to know?"
+            };
+        }
+
+        // Default response
+        return {
+            text: "I can help you with menu information, reservations, and locations for our cafes. Feel free to ask about:\n• Restaurant menus\n• Table bookings\n• Locations\n• Opening hours\n• Special offers\n\nOr you can directly ask me about any of our cafes: TTMM, Hangout Cafe, or Cafe House."
+        };
+    };
+
+    const handleNavigation = async (cafeId, requiresAuth) => {
         try {
-            await axios.get('http://localhost:5000/api/health');
-            setIsConnected(true);
+            console.log("Attempting navigation to:", cafeId);
+            
+            // Check authentication if required
+            if (requiresAuth && !auth.currentUser) {
+                // Store the intended destination
+                localStorage.setItem('redirectAfterLogin', cafeId.includes('slot') ? `/book-slot/${cafeId.split('-')[0]}` : `/preorder/${cafeId}`);
+                
+                // Add a message about authentication
+                setMessages(prev => [...prev, {
+                    text: "You'll need to sign in first. I'll redirect you to the sign-in page.",
+                    sender: "bot"
+                }]);
+                
+                // Delay navigation to allow message to be seen
+                setTimeout(() => {
+                    setIsOpen(false);
+                    navigate('/sign-in');
+                }, 2000);
+                return;
+            }
+
+            setIsOpen(false);
+            if (cafeId === 'ttmm-slot') {
+                navigate(`/book-slot/ttmm`);
+            } else {
+                navigate(`/preorder/${cafeId}`);
+            }
         } catch (error) {
-            console.error('API connection error:', error);
-            setIsConnected(false);
+            console.error("Navigation error:", error);
+            setError("Sorry, I couldn't navigate to that page. Please try again.");
+            setMessages(prev => [...prev, {
+                text: "Sorry, I encountered an error. Please try again or contact support if the problem persists.",
+                sender: "bot"
+            }]);
         }
     };
 
-    const handleNavigation = (cafeId) => {
-        console.log("Attempting navigation to:", cafeId);
-        console.log("Current URL before navigation:", window.location.pathname);
-        setIsOpen(false);
-
-        // Check if this is a slot booking navigation
-        if (cafeId === 'ttmm-slot') {
-            navigate(`/book-slot/ttmm`);
-        } else {
-            navigate(`/preorder/${cafeId}`);
-        }
-        
-        console.log("Navigation completed");
-    };
-
-    const sendMessage = async () => {
+    const sendMessage = () => {
         if (!input.trim()) return;
         
-        const userMessage = { text: input, sender: "user" };
-        setMessages(prev => [...prev, userMessage]);
-        setInput("");
-
         try {
-            // Show typing indicator
-            setMessages(prev => [...prev, { text: "typing...", sender: "bot", isTyping: true }]);
+            const userMessage = { text: input, sender: "user" };
+            setMessages(prev => [...prev, userMessage]);
+            setInput("");
+            setError(null);
 
-            const response = await axios.post(FLASK_API_ENDPOINT, {
-                message: input
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            });
-
-            // Remove typing indicator
-            setMessages(prev => prev.filter(msg => !msg.isTyping));
-
-            if (response.data) {
+            // Get bot response
+            const response = getBotResponse(input);
+            
+            // Add bot response to messages
+            setTimeout(() => {
                 setMessages(prev => [...prev, { 
-                    text: response.data.message, 
+                    text: response.text, 
                     sender: "bot" 
                 }]);
 
-                if (response.data.action === 'navigate' && response.data.cafeId) {
-                    setTimeout(() => handleNavigation(response.data.cafeId), 1000);
+                // Handle navigation if needed
+                if (response.action === "navigate" && response.cafeId) {
+                    setTimeout(() => handleNavigation(response.cafeId, response.requiresAuth), 1000);
                 }
-            }
-
+            }, 500);
         } catch (error) {
-            console.error('Error sending message:', error);
-            setMessages(prev => prev.filter(msg => !msg.isTyping));
-            
-            // Show specific error message
-            const errorMessage = !isConnected 
-                ? "Unable to connect to the server. Please make sure the Flask server is running."
-                : "Sorry, I'm having trouble processing your request. Please try again.";
-            
-            setMessages(prev => [...prev, { 
-                text: errorMessage, 
-                sender: "bot" 
-            }]);
+            console.error("Error processing message:", error);
+            setError("Sorry, I couldn't process your message. Please try again.");
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
         }
     };
 
@@ -189,19 +323,26 @@ export function ChatBot() {
                                                 : "bg-blue-500 text-white"
                                         }`}
                                     >
-                                        <Typography>{msg.text}</Typography>
+                                        <Typography style={{ whiteSpace: 'pre-line' }}>{msg.text}</Typography>
                                     </div>
                                 </div>
                             ))}
                             <div ref={messagesEndRef} />
                         </div>
 
+                        {/* Error Message */}
+                        {error && (
+                            <div className="text-red-500 text-sm mb-2">
+                                {error}
+                            </div>
+                        )}
+
                         {/* Input Area */}
                         <div className="flex gap-2 items-center border-t pt-4">
                             <Input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                                onKeyDown={handleKeyDown}
                                 placeholder="Type your message..."
                                 className="flex-1"
                                 labelProps={{

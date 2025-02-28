@@ -3,13 +3,14 @@ import PropTypes from "prop-types";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Navbar as MTNavbar,
-  MobileNav,
+  Collapse,  // Replace MobileNav with Collapse
   Typography,
   Button,
   IconButton,
 } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { useCallback } from 'react';
 
 const routes = [
   {
@@ -18,6 +19,10 @@ const routes = [
     icon: null,
   },
 ];
+// Add SameSite and Secure attributes to cookies
+const setSecureCookie = (name, value, options = {}) => {
+  document.cookie = `${name}=${value}; SameSite=Strict; Secure; ${Object.entries(options).map(([k, v]) => `${k}=${v}`).join('; ')}`;
+};
 
 export function Navbar({ brandName, routes, action }) {
   const [openNav, setOpenNav] = React.useState(false);
@@ -28,18 +33,77 @@ export function Navbar({ brandName, routes, action }) {
   const auth = getAuth();
   const navigate = useNavigate();
   const [cartQuantity, setCartQuantity] = useState(0);
+  useEffect(() => {
+    let isSubscribed = true;
+    
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!isSubscribed) return;
+
+      try {
+        const storedUser = localStorage.getItem("user");
+        const isFirebaseAuth = !!firebaseUser;
+        const isLocalAuth = !!storedUser;
+        
+        if (isFirebaseAuth) {
+          setUser(firebaseUser);
+          const userData = {
+            email: firebaseUser.email,
+            uid: firebaseUser.uid
+          };
+          // Use sessionStorage for sensitive data
+          sessionStorage.setItem("user", JSON.stringify(userData));
+          // Use localStorage only for non-sensitive data
+          localStorage.setItem("userPreferences", JSON.stringify({
+            theme: 'light',
+            language: 'en'
+          }));
+          setIsAuthenticated(true);
+        } else if (isLocalAuth) {
+          setUser(JSON.parse(storedUser));
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+          
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectPath && location.pathname !== '/sign-in') {
+            sessionStorage.removeItem('redirectAfterLogin');
+            navigateWithTransition('/sign-in');
+          }
+        }
+      } catch (error) {
+        console.error("Auth state change error:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    });
+  return () => {
+    isSubscribed = false;
+    unsubscribe();
+  };
+}, [auth, navigate, location]);
+  const navigateWithTransition = useCallback((to) => {
+    if (typeof window.requestIdleCallback === 'function') {
+      requestIdleCallback(() => navigate(to, { replace: true }));
+    } else {
+      setTimeout(() => navigate(to, { replace: true }), 0);
+    }
+  }, [navigate]);
 
   const handleSignOut = async () => {
     try {
-      // Sign out from Firebase if using Firebase auth
-      if (auth.currentUser) {
-        await signOut(auth);
-      }
+      // Sign out from Firebase
+      await signOut(auth);
       
-      // Clear all auth-related data
-      localStorage.removeItem("user");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem(`cart_${auth.currentUser?.uid}`);
+      // Clear all localStorage items
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('redirectAfterLogin');
+      
+      // Clear any cart data
+      if (auth.currentUser?.uid) {
+        localStorage.removeItem(`cart_${auth.currentUser.uid}`);
+      }
       
       // Reset states
       setIsAuthenticated(false);
@@ -47,7 +111,10 @@ export function Navbar({ brandName, routes, action }) {
       setCartQuantity(0);
 
       // Navigate to home page
-      window.location.href = '/';
+      navigate('/', { replace: true });
+      
+      // Reload the page to ensure all states are reset
+      window.location.reload();
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -55,39 +122,48 @@ export function Navbar({ brandName, routes, action }) {
 
   useEffect(() => {
     // Check both Firebase auth and local storage for authentication
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      const storedUser = localStorage.getItem("user");
-      const isFirebaseAuth = !!firebaseUser;
-      const isLocalAuth = !!storedUser;
-      
-      // Set authentication state based on either Firebase or local auth
-      setIsAuthenticated(isFirebaseAuth || isLocalAuth);
-      
-      if (isFirebaseAuth) {
-        // Firebase user takes precedence
-        setUser(firebaseUser);
-        localStorage.setItem("user", JSON.stringify({
-          email: firebaseUser.email,
-          uid: firebaseUser.uid
-        }));
-      } else if (isLocalAuth) {
-        // Use stored user data for manual login
-        setUser(JSON.parse(storedUser));
-      } else {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        const isFirebaseAuth = !!firebaseUser;
+        const isLocalAuth = !!storedUser;
+        
+        setIsAuthenticated(isFirebaseAuth || isLocalAuth);
+        
+        if (isFirebaseAuth) {
+          setUser(firebaseUser);
+          // Store user data after ensuring we have all necessary information
+          const userData = {
+            email: firebaseUser.email,
+            uid: firebaseUser.uid
+          };
+          localStorage.setItem("user", JSON.stringify(userData));
+        } else if (isLocalAuth) {
+          setUser(JSON.parse(storedUser));
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error("Auth state change error:", error);
         setUser(null);
+        setIsAuthenticated(false);
       }
     });
-
-    return () => unsubscribe();
+    return () => {
+      try {
+        unsubscribe();
+      } catch (error) {
+        console.error("Cleanup error:", error);
+      }
+    };
   }, [auth]);
-
   useEffect(() => {
     window.addEventListener(
       "resize",
       () => window.innerWidth >= 960 && setOpenNav(false)
     );
   }, []);
-
   useEffect(() => {
     const updateCartQuantity = () => {
       if (auth.currentUser) {
@@ -101,19 +177,16 @@ export function Navbar({ brandName, routes, action }) {
         }
       }
     };
-
-    // Initial cart quantity update
+  // Initial cart quantity update
     updateCartQuantity();
-
-    // Listen for storage changes
+  // Listen for storage changes
     const handleStorageChange = (e) => {
       if (e.key && e.key.startsWith('cart_')) {
         updateCartQuantity();
       }
     };
     window.addEventListener('storage', handleStorageChange);
-
-    // Listen for auth state changes
+  // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         updateCartQuantity();
@@ -121,23 +194,20 @@ export function Navbar({ brandName, routes, action }) {
         setCartQuantity(0);
       }
     });
-
-    // Custom event listener for cart updates
+  // Custom event listener for cart updates
     const handleCartUpdate = () => updateCartQuantity();
     window.addEventListener('cartUpdated', handleCartUpdate);
-
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('cartUpdated', handleCartUpdate);
       unsubscribe();
     };
   }, [auth]);
-
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 text-inherit lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
-      {routes.map(({ name, path, icon, href, target }) => (
+      {routes.map(({ name, path, icon, href, target }, index) => (
         <Typography
-          key={name}
+          key={`nav-${name}-${index}`}
           as="li"
           variant="small"
           color="inherit"
@@ -151,6 +221,7 @@ export function Navbar({ brandName, routes, action }) {
             >
               {icon && React.createElement(icon, {
                 className: "w-[18px] h-[18px] opacity-75 mr-1",
+                key: `icon-${name}-${index}`
               })}
               {name}
             </a>
@@ -162,6 +233,7 @@ export function Navbar({ brandName, routes, action }) {
             >
               {icon && React.createElement(icon, {
                 className: "w-[18px] h-[18px] opacity-75 mr-1",
+                key: `icon-${name}-${index}`
               })}
               {name}
             </Link>
@@ -170,6 +242,7 @@ export function Navbar({ brandName, routes, action }) {
       ))}
       {isAuthenticated && user?.email && (
         <Typography
+          key="user-email-nav"
           as="li"
           variant="small"
           color="inherit"
@@ -182,7 +255,6 @@ export function Navbar({ brandName, routes, action }) {
       )}
     </ul>
   );
-
   return (
     <MTNavbar color="transparent" className="p-3">
       <div className="container mx-auto flex items-center justify-between text-white">
@@ -228,7 +300,6 @@ export function Navbar({ brandName, routes, action }) {
             })}
           </div>
         )}
-        
         <IconButton
           variant="text"
           size="sm"
@@ -243,44 +314,57 @@ export function Navbar({ brandName, routes, action }) {
           )}
         </IconButton>
       </div>
-      
-      <MobileNav
-        className="rounded-xl bg-white px-4 pt-2 pb-4 text-blue-gray-900"
-        open={openNav}
-      >
-        <div className="container mx-auto">
-          {navList}
-          {isAuthenticated ? (
-            <div className="flex flex-col gap-2">
-              <Button 
-                variant="text" 
-                size="sm" 
-                fullWidth
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-              <Link to="/cart" className="flex justify-center">
-                <ShoppingCartIcon className="h-6 w-6" />
-                {cartQuantity > 0 && (
-                  <span className="ml-1">{cartQuantity}</span>
-                )}
-              </Link>
-            </div>
-          ) : (
-            <>
-              <Link to="/sign-in" className="mb-2 block">
-                <Button variant="text" size="sm" fullWidth>
-                  Sign In
+      <Collapse open={openNav}>
+        <div className="container mx-auto bg-white/90 rounded-xl mt-4 p-4">
+          <div className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-2">
+              {routes.map(({ name, path, icon }, index) => (
+                <Typography
+                  key={`mobile-${name}-${index}`}
+                  as="li"
+                  variant="small"
+                  color="blue-gray"
+                  className="p-1 font-normal"
+                >
+                  <Link to={path} className="flex items-center">
+                    {icon && React.createElement(icon, {
+                      className: "w-5 h-5 mr-2",
+                      key: `mobile-icon-${name}-${index}`
+                    })}
+                    {name}
+                  </Link>
+                </Typography>
+              ))}
+            </ul>
+            {isAuthenticated ? (
+              <div className="flex flex-col gap-2">
+                <Link to="/cart" className="flex items-center gap-2">
+                  <ShoppingCartIcon className="h-6 w-6" />
+                  <Typography color="blue-gray">Cart ({cartQuantity})</Typography>
+                </Link>
+                <Button 
+                  variant="text" 
+                  size="sm" 
+                  color="blue-gray"
+                  onClick={handleSignOut}
+                  fullWidth
+                >
+                  Sign Out
                 </Button>
-              </Link>
-              {React.cloneElement(action, {
-                className: "w-full block",
-              })}
-            </>
-          )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link to="/sign-in">
+                  <Button variant="text" size="sm" color="blue-gray" fullWidth>
+                    Sign In
+                  </Button>
+                </Link>
+                {action}
+              </div>
+            )}
+          </div>
         </div>
-      </MobileNav>
+      </Collapse>
     </MTNavbar>
   );
 }
