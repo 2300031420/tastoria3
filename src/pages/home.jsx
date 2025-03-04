@@ -132,6 +132,189 @@ export function Home() {
         </div>
       </section>
 
+      {/* New Trending Items Section */}
+      <section className="px-4 pt-20 pb-20 bg-gray-50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <Typography variant="h2" color="blue-gray" className="mb-3">
+              Trending Items
+            </Typography>
+            <Typography variant="lead" className="text-blue-gray-500">
+              Most loved dishes from our restaurants
+            </Typography>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                name: "Classic Margherita",
+                restaurant: "Hangout Cafe",
+                price: "₹299",
+                image: "/img/pizza.jpg",
+                rating: 4.8,
+                orders: "1.2k+ orders this week"
+              },
+              {
+                name: "Chocolate Truffle Cake",
+                restaurant: "Golden Bakery",
+                price: "₹399",
+                image: "/img/cake.jpg",
+                rating: 4.9,
+                orders: "800+ orders this week"
+              },
+              {
+                name: "Cold Coffee",
+                restaurant: "Cafe House",
+                price: "₹149",
+                image: "/img/Cappuccino.jpg",
+                rating: 4.7,
+                orders: "950+ orders this week"
+              },
+              {
+                name: "Classic Burger",
+                restaurant: "TTmm",
+                price: "₹199",
+                image: "/img/burger.jpg",
+                rating: 4.6,
+                orders: "700+ orders this week"
+              }
+            ].map((item) => (
+              <Card 
+                key={item.name} 
+                className="overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => navigate(`/preorder/${item.restaurant.toLowerCase().replace(/\s+/g, '-')}`)}
+              >
+                <CardHeader floated={false} className="h-48 relative">
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
+                  />
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
+                    <Typography className="flex items-center gap-1 text-sm">
+                      <span className="text-yellow-700">★</span>
+                      {item.rating}
+                    </Typography>
+                  </div>
+                </CardHeader>
+                <CardBody className="p-6 hover:bg-gray-50 transition-colors duration-300">
+                  <Typography variant="h5" color="blue-gray" className="mb-1">
+                    {item.name}
+                  </Typography>
+                  <Typography color="gray" className="mb-2 text-sm">
+                    {item.restaurant}
+                  </Typography>
+                  <div className="flex justify-between items-center">
+                    <Typography color="blue-gray" className="font-medium">
+                      {item.price}
+                    </Typography>
+                    <Typography color="gray" className="text-sm">
+                      {item.orders}
+                    </Typography>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* New Launches Section */}
+      <section className="px-4 pt-20 pb-20 bg-white">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <Typography variant="h2" color="blue-gray" className="mb-3">
+              New Launches
+            </Typography>
+            <Typography variant="lead" className="text-blue-gray-500">
+              Exciting new additions to our menu
+            </Typography>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Supreme Veggie Pizza",
+                restaurant: "Hangout Cafe",
+                price: "₹349",
+                image: "/img/pizza.jpg",
+                tag: "New",
+                description: "Loaded with fresh vegetables and exotic herbs",
+                restaurantId: "hangout-cafe",
+                itemId: "1"
+              },
+              {
+                name: "Blueberry Cheesecake",
+                restaurant: "Golden Bakery",
+                price: "₹449",
+                image: "/img/cake.jpg",
+                tag: "Premium",
+                description: "Rich and creamy with fresh blueberry topping",
+                restaurantId: "golden-bakery",
+                itemId: "4"
+              },
+              {
+                name: "Grilled Chicken Burger",
+                restaurant: "TTmm",
+                price: "₹249",
+                image: "/img/burger.jpg",
+                tag: "Special",
+                description: "Juicy grilled chicken with special sauce",
+                restaurantId: "ttmm",
+                itemId: "2"
+              }
+            ].map((item) => (
+              <Card 
+                key={item.name} 
+                className="overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              >
+                <CardHeader floated={false} className="h-56 relative">
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
+                  />
+                  <div className="absolute top-2 left-2 bg-red-500 px-3 py-1 rounded-full">
+                    <Typography className="text-white text-sm font-medium">
+                      {item.tag}
+                    </Typography>
+                  </div>
+                </CardHeader>
+                <CardBody className="p-6 hover:bg-gray-50 transition-colors duration-300">
+                  <Typography variant="h5" color="blue-gray" className="mb-1">
+                    {item.name}
+                  </Typography>
+                  <Typography color="gray" className="mb-2 text-sm">
+                    {item.restaurant}
+                  </Typography>
+                  <Typography color="gray" className="mb-3 text-sm">
+                    {item.description}
+                  </Typography>
+                  <div className="flex justify-between items-center">
+                    <Typography color="blue-gray" className="font-medium">
+                      {item.price}
+                    </Typography>
+                    <Button 
+                      size="sm" 
+                      color="blue" 
+                      className="rounded-full transform transition-all duration-300 hover:scale-105"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigate(`/preorder/${item.restaurantId}`, {
+                          state: { selectedItemId: item.itemId }
+                        });
+                      }}
+                    >
+                      Order Now
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="px-4 pt-20 pb-48 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-12">

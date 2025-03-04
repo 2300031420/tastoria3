@@ -32,6 +32,33 @@ export function ChatBot() {
     const getBotResponse = (message) => {
         message = message.toLowerCase().trim();
 
+        // Add specific item queries
+        if (message.includes("pizza")) {
+            return {
+                text: "I'll show you our delicious pizza options!",
+                action: "navigateToItem",
+                restaurantId: "hangout-cafe",
+                itemId: "1",
+                requiresAuth: true
+            };
+        } else if (message.includes("burger")) {
+            return {
+                text: "Let me show you our burger selection!",
+                action: "navigateToItem",
+                restaurantId: "ttmm",
+                itemId: "2",
+                requiresAuth: true
+            };
+        } else if (message.includes("cake") || message.includes("dessert")) {
+            return {
+                text: "I'll show you our amazing cakes!",
+                action: "navigateToItem",
+                restaurantId: "golden-bakery",
+                itemId: "4",
+                requiresAuth: true
+            };
+        }
+
         // Direct cafe navigation queries
         if (message.includes("navigate") || message.includes("go to") || message.includes("take me to")) {
             if (message.includes("ttmm")) {
@@ -168,22 +195,26 @@ export function ChatBot() {
         };
     };
 
-    const handleNavigation = async (cafeId, requiresAuth) => {
+    const handleNavigation = async (cafeId, requiresAuth, action = 'navigate', itemId = null) => {
         try {
-            console.log("Attempting navigation to:", cafeId);
+            console.log("Attempting navigation to:", cafeId, "with item:", itemId);
             
             // Check authentication if required
             if (requiresAuth && !auth.currentUser) {
-                // Store the intended destination
-                localStorage.setItem('redirectAfterLogin', cafeId.includes('slot') ? `/book-slot/${cafeId.split('-')[0]}` : `/preorder/${cafeId}`);
+                // Store the intended destination with item information
+                const redirectPath = action === 'navigateToItem' 
+                    ? `/preorder/${cafeId}?item=${itemId}`
+                    : cafeId.includes('slot') 
+                        ? `/book-slot/${cafeId.split('-')[0]}` 
+                        : `/preorder/${cafeId}`;
                 
-                // Add a message about authentication
+                localStorage.setItem('redirectAfterLogin', redirectPath);
+                
                 setMessages(prev => [...prev, {
                     text: "You'll need to sign in first. I'll redirect you to the sign-in page.",
                     sender: "bot"
                 }]);
                 
-                // Delay navigation to allow message to be seen
                 setTimeout(() => {
                     setIsOpen(false);
                     navigate('/sign-in');
@@ -194,6 +225,10 @@ export function ChatBot() {
             setIsOpen(false);
             if (cafeId === 'ttmm-slot') {
                 navigate(`/book-slot/ttmm`);
+            } else if (action === 'navigateToItem') {
+                navigate(`/preorder/${cafeId}`, {
+                    state: { selectedItemId: itemId }
+                });
             } else {
                 navigate(`/preorder/${cafeId}`);
             }
@@ -229,6 +264,13 @@ export function ChatBot() {
                 // Handle navigation if needed
                 if (response.action === "navigate" && response.cafeId) {
                     setTimeout(() => handleNavigation(response.cafeId, response.requiresAuth), 1000);
+                } else if (response.action === "navigateToItem" && response.restaurantId && response.itemId) {
+                    setTimeout(() => handleNavigation(
+                        response.restaurantId, 
+                        response.requiresAuth,
+                        'navigateToItem',
+                        response.itemId
+                    ), 1000);
                 }
             }, 500);
         } catch (error) {

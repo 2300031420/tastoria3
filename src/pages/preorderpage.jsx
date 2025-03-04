@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
-import { Input } from "@material-tailwind/react";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { 
+  Input,
+  Dialog,
+  DialogHeader,
+  DialogBody,
+  DialogFooter,
+  Button,
+  IconButton,
+  Typography,
+} from "@material-tailwind/react";
+import { MagnifyingGlassIcon, XMarkIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { toast } from 'react-hot-toast';
 import { Toaster } from 'react-hot-toast';
 
 function PreorderPage() {
   const { restaurantId } = useParams();
+  const location = useLocation();
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNotification, setShowNotification] = useState(false);
@@ -19,6 +29,9 @@ function PreorderPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredMenu, setFilteredMenu] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalQuantity, setModalQuantity] = useState(1);
 
   const categories = [
     { id: 'all', name: 'All Items', icon: '🍽️' },
@@ -38,7 +51,21 @@ function PreorderPage() {
         price: 100, 
         description: 'Delicious Italian pizza with fresh toppings',
         category: 'lunch',
-        image: '/img/pizza.jpg'
+        image: '/img/pizza.jpg',
+        detailedDescription: 'Hand-tossed pizza with a perfect blend of mozzarella cheese, fresh vegetables, and our secret sauce',
+        ingredients: ['Mozzarella Cheese', 'Fresh Tomatoes', 'Bell Peppers', 'Olive Oil', 'Italian Herbs'],
+        nutritionalInfo: {
+          calories: '266 kcal',
+          protein: '12g',
+          carbs: '30g',
+          fat: '10g'
+        },
+        preparationTime: '20-25 mins',
+        spicyLevel: 'Medium',
+        isVegetarian: true,
+        allergens: ['Dairy', 'Gluten'],
+        servingSize: '8 inches',
+        rating: 4.8
       },
       { 
         id: 2, 
@@ -46,7 +73,21 @@ function PreorderPage() {
         price: 120, 
         description: 'Juicy beef burger with cheese and veggies',
         category: 'snacks',
-        image: '/img/burger.jpg'
+        image: '/img/burger.jpg',
+        detailedDescription: 'Premium beef patty with melted cheese, fresh lettuce, tomatoes, and our special sauce',
+        ingredients: ['Beef Patty', 'Cheese', 'Lettuce', 'Tomatoes', 'Special Sauce'],
+        nutritionalInfo: {
+          calories: '350 kcal',
+          protein: '20g',
+          carbs: '25g',
+          fat: '15g'
+        },
+        preparationTime: '15-20 mins',
+        spicyLevel: 'Mild',
+        isVegetarian: false,
+        allergens: ['Dairy', 'Gluten', 'Soy'],
+        servingSize: '1 piece',
+        rating: 4.6
       },
       { 
         id: 3, 
@@ -54,16 +95,43 @@ function PreorderPage() {
         price: 80, 
         description: 'Rich and creamy Italian coffee',
         category: 'beverages',
-        image: '/img/Cappuccino.jpg'
+        image: '/img/Cappuccino.jpg',
+        detailedDescription: 'Premium coffee beans brewed to perfection with steamed milk and foam',
+        ingredients: ['Espresso', 'Steamed Milk', 'Milk Foam'],
+        nutritionalInfo: {
+          calories: '120 kcal',
+          protein: '8g',
+          carbs: '12g',
+          fat: '4g'
+        },
+        preparationTime: '5-7 mins',
+        spicyLevel: 'None',
+        isVegetarian: true,
+        allergens: ['Dairy'],
+        servingSize: '240ml',
+        rating: 4.7
       },
       {
         id: 4,
-        name: 'Cake',
+        name: 'Chocolate Cake',
         price: 300,
-        weight: '1kg',
         description: 'Decadent chocolate cake with rich frosting',
         category: 'desserts',
-        image: '/img/cake.jpg'
+        image: '/img/cake.jpg',
+        detailedDescription: 'Three layers of moist chocolate cake with rich chocolate ganache and whipped cream',
+        ingredients: ['Dark Chocolate', 'Flour', 'Eggs', 'Butter', 'Sugar', 'Whipped Cream'],
+        nutritionalInfo: {
+          calories: '380 kcal',
+          protein: '5g',
+          carbs: '45g',
+          fat: '18g'
+        },
+        preparationTime: '10-15 mins',
+        spicyLevel: 'None',
+        isVegetarian: true,
+        allergens: ['Dairy', 'Eggs', 'Gluten'],
+        servingSize: '1 slice',
+        rating: 4.9
       },
       {
         id: 5,
@@ -71,7 +139,21 @@ function PreorderPage() {
         price: 150,
         description: 'Creamy ice cream with a variety of flavors',
         category: 'desserts',
-        image: '/img/icecream.jpg'
+        image: '/img/icecream.jpg',
+        detailedDescription: 'Smooth and creamy ice cream made with fresh ingredients and natural flavors',
+        ingredients: ['Cream', 'Milk', 'Sugar', 'Natural Flavors'],
+        nutritionalInfo: {
+          calories: '200 kcal',
+          protein: '4g',
+          carbs: '25g',
+          fat: '10g'
+        },
+        preparationTime: '2-3 mins',
+        spicyLevel: 'None',
+        isVegetarian: true,
+        allergens: ['Dairy'],
+        servingSize: '2 scoops',
+        rating: 4.5
       },
       {
         id: 6,
@@ -79,9 +161,22 @@ function PreorderPage() {
         price: 200,
         description: 'Creamy pasta with a variety of sauces',
         category: 'breakfast',
-        image: '/img/pasta.jpg'
-      },
-      // Add more items with appropriate categories
+        image: '/img/pasta.jpg',
+        detailedDescription: 'Al dente pasta tossed in creamy sauce with fresh herbs and parmesan',
+        ingredients: ['Pasta', 'Cream Sauce', 'Parmesan', 'Fresh Herbs', 'Olive Oil'],
+        nutritionalInfo: {
+          calories: '320 kcal',
+          protein: '12g',
+          carbs: '40g',
+          fat: '14g'
+        },
+        preparationTime: '15-20 mins',
+        spicyLevel: 'Mild',
+        isVegetarian: true,
+        allergens: ['Dairy', 'Gluten'],
+        servingSize: '300g',
+        rating: 4.7
+      }
     ];
     
     setMenu(dummyMenu);
@@ -138,6 +233,17 @@ function PreorderPage() {
       }
     }
   }, [auth.currentUser]);
+
+  // Add this useEffect to handle automatic modal opening
+  useEffect(() => {
+    if (location.state?.selectedItemId && menu.length > 0) {
+      const selectedItem = menu.find(item => item.id.toString() === location.state.selectedItemId.toString());
+      if (selectedItem) {
+        setSelectedItem(selectedItem);
+        setIsModalOpen(true);
+      }
+    }
+  }, [location.state, menu]);
 
   const updateQuantity = (itemId, change) => {
     setQuantities(prev => {
@@ -248,6 +354,55 @@ function PreorderPage() {
     setTimeout(() => setShowNotification(false), 2000);
   };
 
+  const handleOpenModal = (item) => {
+    setSelectedItem(item);
+    setModalQuantity(quantities[item.id] || 1);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
+    setModalQuantity(1);
+  };
+
+  const handleModalQuantityChange = (change) => {
+    setModalQuantity(prev => Math.max(1, prev + change));
+  };
+
+  const handleAddToCartFromModal = () => {
+    if (!auth.currentUser) {
+      navigate('/sign-in');
+      return;
+    }
+
+    const userId = auth.currentUser.uid;
+    const savedCart = localStorage.getItem(`cart_${userId}`);
+    let cartItems = savedCart ? JSON.parse(savedCart) : [];
+
+    const itemToAdd = {
+      ...selectedItem,
+      quantity: modalQuantity
+    };
+
+    const existingItemIndex = cartItems.findIndex(item => item.id === selectedItem.id);
+
+    if (existingItemIndex !== -1) {
+      cartItems[existingItemIndex].quantity = modalQuantity;
+    } else {
+      cartItems.push(itemToAdd);
+    }
+
+    localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems));
+    setItemsInCart(prev => ({ ...prev, [selectedItem.id]: true }));
+    setQuantities(prev => ({ ...prev, [selectedItem.id]: modalQuantity }));
+    
+    window.dispatchEvent(new Event('cartUpdated'));
+    handleCloseModal();
+    
+    toast.success(`Added ${modalQuantity} ${selectedItem.name}(s) to cart`);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -291,48 +446,49 @@ function PreorderPage() {
         <div className="px-3 sm:px-4 pt-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
             {filteredMenu.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-md overflow-hidden transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]">
-                <div className="relative h-48 sm:h-52">
+              <div
+                key={item.id}
+                onClick={() => handleOpenModal(item)}
+                className="relative h-[280px] bg-white rounded-2xl shadow-md overflow-hidden transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
+              >
+                {/* Image container with fixed aspect ratio */}
+                <div className="absolute inset-0">
                   <img 
                     src={item.image} 
                     alt={item.name} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    style={{ objectPosition: 'center center' }}
                   />
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm">
-                    <span className="text-gray-800 font-semibold">₹{item.price}</span>
-                  </div>
                 </div>
                 
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-800 text-lg mb-1">{item.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
-                  
-                  <div className="flex gap-2">
-                    <div className="flex items-center justify-center gap-1 bg-gray-50 rounded-full p-1">
-                      <button 
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-600 
-                          rounded-full hover:bg-gray-100 transition-colors duration-200"
-                      >-</button>
-                      <span className="w-8 text-center font-medium text-gray-800">{quantities[item.id] || 1}</span>
-                      <button 
-                        onClick={() => updateQuantity(item.id, 1)}
-                        className="w-8 h-8 flex items-center justify-center text-green-500 hover:text-green-600 
-                          rounded-full hover:bg-gray-100 transition-colors duration-200"
-                      >+</button>
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
+                
+                {/* Content overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1 mr-2">
+                      <h3 className="font-bold text-lg text-white mb-1 line-clamp-1">{item.name}</h3>
+                      <p className="text-sm text-gray-200 line-clamp-2 min-h-[40px]">{item.description}</p>
                     </div>
-                    
-                    <button
-                      onClick={() => addToCart(item)}
-                      className={`flex-1 py-2 px-4 rounded-full text-sm font-medium
-                        transition-all duration-200 ${
-                          itemsInCart[item.id]
-                            ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700'
-                            : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
-                        }`}
-                    >
-                      {itemsInCart[item.id] ? 'Remove' : 'Add to Cart'}
-                    </button>
+                    <div className="flex-shrink-0 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                      <span className="text-gray-800 font-semibold whitespace-nowrap">₹{item.price}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Tags and additional info */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {item.isVegetarian && (
+                      <span className="bg-green-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
+                        Vegetarian
+                      </span>
+                    )}
+                    <span className="bg-blue-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
+                      {item.preparationTime}
+                    </span>
+                    <span className="bg-yellow-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white flex items-center gap-1">
+                      <span>★</span> {item.rating}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -341,7 +497,25 @@ function PreorderPage() {
         </div>
       </div>
 
-      {/* Categories Bar */}
+      {/* Mobile Cart Button - Fixed at bottom */}
+      <div className="md:hidden fixed bottom-20 right-4 z-30">
+        <Button
+          size="lg"
+          color="blue"
+          className="rounded-full shadow-lg flex items-center gap-2"
+          onClick={() => navigate('/cart')}
+        >
+          <ShoppingCartIcon className="h-5 w-5" />
+          <span>Cart</span>
+          {Object.keys(itemsInCart).length > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {Object.keys(itemsInCart).length}
+            </span>
+          )}
+        </Button>
+      </div>
+
+      {/* Categories Bar - Adjust z-index to be below cart button */}
       <div className="fixed bottom-0 left-0 w-full z-20">
         <div className="bg-white/95 backdrop-blur-sm p-3 shadow-lg border-t border-gray-200/50">
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-safe snap-x snap-mandatory">
@@ -364,6 +538,185 @@ function PreorderPage() {
           </div>
         </div>
       </div>
+
+      {/* Item Detail Modal */}
+      <Dialog
+        size="lg"
+        open={isModalOpen}
+        handler={handleCloseModal}
+        className="bg-white rounded-xl shadow-xl"
+      >
+        {selectedItem && (
+          <>
+            <DialogHeader className="flex items-center justify-between py-3 px-4">
+              <Typography variant="h5" color="blue-gray" className="text-lg">
+                {selectedItem.name}
+              </Typography>
+              <IconButton
+                color="blue-gray"
+                size="sm"
+                variant="text"
+                onClick={handleCloseModal}
+              >
+                <XMarkIcon strokeWidth={2} className="h-4 w-4" />
+              </IconButton>
+            </DialogHeader>
+
+            <DialogBody divider className="p-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Image Section */}
+                <div className="relative h-[250px] md:h-[300px]">
+                  <img
+                    src={selectedItem.image}
+                    alt={selectedItem.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {selectedItem.isVegetarian && (
+                    <div className="absolute top-3 left-3 bg-green-500 px-2 py-1 rounded-full">
+                      <Typography className="text-white text-xs font-medium">
+                        Vegetarian
+                      </Typography>
+                    </div>
+                  )}
+                </div>
+
+                {/* Details Section */}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <Typography variant="h6" color="blue-gray" className="text-sm mb-1">
+                      Description
+                    </Typography>
+                    <Typography className="text-gray-700 text-sm">
+                      {selectedItem.detailedDescription}
+                    </Typography>
+                  </div>
+
+                  {/* Preparation Details */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">Prep Time:</span>
+                        <span>{selectedItem.preparationTime}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">Spicy Level:</span>
+                        <span>{selectedItem.spicyLevel}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">Serving:</span>
+                        <span>{selectedItem.servingSize}</span>
+                      </div>
+                    </div>
+
+                    {/* Nutritional Info */}
+                    <div className="space-y-1.5">
+                      <Typography variant="h6" color="blue-gray" className="text-sm mb-1">
+                        Nutritional Info
+                      </Typography>
+                      <div className="space-y-0.5 text-sm">
+                        <div>Calories: {selectedItem.nutritionalInfo.calories}</div>
+                        <div>Protein: {selectedItem.nutritionalInfo.protein}</div>
+                        <div>Carbs: {selectedItem.nutritionalInfo.carbs}</div>
+                        <div>Fat: {selectedItem.nutritionalInfo.fat}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ingredients */}
+                  <div>
+                    <Typography variant="h6" color="blue-gray" className="text-sm mb-1">
+                      Ingredients
+                    </Typography>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedItem.ingredients.map((ingredient) => (
+                        <span
+                          key={ingredient}
+                          className="bg-blue-gray-50 px-2 py-0.5 rounded-full text-xs"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Allergens */}
+                  {selectedItem.allergens && selectedItem.allergens.length > 0 && (
+                    <div>
+                      <Typography variant="h6" color="blue-gray" className="text-sm mb-1">
+                        Allergens
+                      </Typography>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedItem.allergens.map((allergen) => (
+                          <span
+                            key={allergen}
+                            className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs"
+                          >
+                            {allergen}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quantity and Price */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-3">
+                      <Typography color="blue-gray" className="text-sm">Quantity:</Typography>
+                      <div className="flex items-center gap-1 bg-blue-gray-50 rounded-full">
+                        <IconButton
+                          variant="text"
+                          size="sm"
+                          className="h-6 w-6"
+                          onClick={() => handleModalQuantityChange(-1)}
+                        >
+                          -
+                        </IconButton>
+                        <Typography className="w-8 text-center text-sm">
+                          {modalQuantity}
+                        </Typography>
+                        <IconButton
+                          variant="text"
+                          size="sm"
+                          className="h-6 w-6"
+                          onClick={() => handleModalQuantityChange(1)}
+                        >
+                          +
+                        </IconButton>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Typography variant="h6" color="blue-gray" className="text-base">
+                        Total: ₹{selectedItem.price * modalQuantity}
+                      </Typography>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DialogBody>
+
+            <DialogFooter className="space-x-2 p-3">
+              <Button
+                variant="outlined"
+                color="blue-gray"
+                size="sm"
+                onClick={handleCloseModal}
+                className="text-sm"
+              >
+                Close
+              </Button>
+              <Button
+                variant="gradient"
+                color="blue"
+                size="sm"
+                onClick={handleAddToCartFromModal}
+                className="text-sm"
+              >
+                Add to Cart
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </Dialog>
 
       <Toaster />
     </div>
