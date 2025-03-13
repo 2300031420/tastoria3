@@ -7,7 +7,7 @@ import {
   Button,
   Typography,
 } from "@material-tailwind/react";
-import { getAuth } from "firebase/auth";
+import { auth } from '../firebase/config';
 
 export function ChatBot() {
     const [messages, setMessages] = useState([{ 
@@ -19,7 +19,6 @@ export function ChatBot() {
     const [error, setError] = useState(null);
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
-    const auth = getAuth();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

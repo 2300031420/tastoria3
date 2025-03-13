@@ -17,6 +17,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "@material-tailwind/react";
 import { Toaster } from 'react-hot-toast';
 import "../public/css/tailwind.css";
+import './firebase/config'; // Import firebase config
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

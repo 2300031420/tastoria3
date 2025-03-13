@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { userRoutes } from "../../routes";
 import {
   Navbar as MTNavbar,
   Collapse,  // Replace MobileNav with Collapse
@@ -9,16 +10,20 @@ import {
   IconButton,
 } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useCallback } from 'react';
+import { auth } from '../../firebase/config';
 
-const routes = [
+{/*const routes = [
   {
     name: "Book Table",
     path: "/cafes",
     icon: null,
-  },
-];
+  },}
+]
+*/}
+const routes = userRoutes.filter(route => route.name);
+
 // Add SameSite and Secure attributes to cookies
 const setSecureCookie = (name, value, options = {}) => {
   document.cookie = `${name}=${value}; SameSite=Strict; Secure; ${Object.entries(options).map(([k, v]) => `${k}=${v}`).join('; ')}`;
@@ -30,7 +35,6 @@ export function Navbar({ brandName, routes, action }) {
   const [user, setUser] = useState(null);
   const location = useLocation();
   const isHomePage = location.pathname === '/';
-  const auth = getAuth();
   const navigate = useNavigate();
   const [cartQuantity, setCartQuantity] = useState(0);
   useEffect(() => {
@@ -260,11 +264,7 @@ export function Navbar({ brandName, routes, action }) {
       <div className="container mx-auto flex items-center justify-between text-white">
         {isHomePage && (
           <Link to="/">
-            <img 
-              src="/img/logo.png" 
-              alt="Tastoria Logo" 
-              className="h-32 w-60 mr-4 ml-2 cursor-pointer py-1.5 opacity-90 backdrop-blur-sm"
-            />
+            
           </Link>
         )}
         <div className="hidden lg:flex items-center ml-auto">{navList}</div>

@@ -1,15 +1,18 @@
-import { Home, SignIn, SignUp } from "@/pages";
-import { SlotBooking } from "@/pages/SlotBooking";
-import { CafeList } from "@/pages/CafeList";
-import { element } from "prop-types";
+import { Home } from "./pages/home";
+import { Profile } from "./pages/Profile";
+import { SlotBooking } from "./pages/SlotBooking";
+import { CafeList } from "./pages/CafeList";
 import PreorderModal from './pages/preorderModal';
 import PreorderPage from './pages/preorderpage';
 import QRScanner from './components/QRScanner';
+import { AdminLogin } from "./pages/admin-login";
+import { AdminPortal } from "./pages/admin-portal";
 
-export const routes = [
+// Regular user routes
+export const userRoutes = [
   {
     name: "home",
-    path: "/home",
+    path: "/",
     element: <Home />,
   },
   {
@@ -32,6 +35,26 @@ export const routes = [
     path: '/preorder/:restaurantId',
     element: <PreorderPage />,
   },
+  {
+    name: "profile",
+    path: "/profile",
+    element: <Profile />,
+  },
 ];
+
+// Admin routes (these won't show in the navigation)
+export const adminRoutes = [
+  {
+    path: "/admin-login",
+    element: <AdminLogin />,
+  },
+  {
+    path: "/admin-portal",
+    element: <AdminPortal />,
+  },
+];
+
+// Combine all routes for the router
+export const routes = [...userRoutes, ...adminRoutes];
 
 export default routes;

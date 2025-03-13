@@ -5,21 +5,28 @@ import {
   Typography,
 } from "@material-tailwind/react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import app from "../firebase/config";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInWithEmailAndPassword } from "firebase/auth";
 import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
 
 export function SignIn() {
   const location = useLocation();
   const navigate = useNavigate();
-  const auth = getAuth(app);
+  const auth = getAuth();
   const googleProvider = new GoogleAuthProvider();
   const facebookProvider = new FacebookAuthProvider();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const message = location.state?.message;
+  const from = location.state?.from;
+
+  useEffect(() => {
+    // If user is already logged in and there's a redirect path
+    if (auth.currentUser && from) {
+      navigate(from);
+    }
+  }, [auth.currentUser, from, navigate]);
 
   const handleSuccessfulLogin = (user) => {
     try {
@@ -34,10 +41,12 @@ export function SignIn() {
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', user.accessToken || 'mock-jwt-token');
 
-      // Navigate to the return URL or preorder page
-      const returnUrl = location.state?.returnUrl || '/preorder';
-      console.log('Navigating to:', returnUrl);
-      navigate(returnUrl, { replace: true });
+      // Get the redirect path from localStorage or use default
+      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/preorder';
+      // Clear the stored path
+      localStorage.removeItem('redirectAfterLogin');
+      // Navigate to the stored path
+      navigate(redirectPath, { replace: true });
     } catch (error) {
       console.error('Error during login:', error);
       setError('An error occurred during login. Please try again.');
@@ -71,47 +80,50 @@ export function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+    setIsLoading(true);
+
     try {
-      if (!email || !password) {
-        setError("Please provide both email and password");
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Check if email contains 'admin' - if it does, reject the login
+      if (email.toLowerCase().includes('admin')) {
+        await auth.signOut();
+        setError("Please use the admin login page to access administrator features.");
+        setIsLoading(false);
         return;
       }
 
-      // Try Firebase authentication first
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      handleSuccessfulLogin(result.user);
+      // Get the ID token
+      const token = await user.getAccessToken();
+
+      // Store user data without admin privileges
+      const userData = {
+        email: user.email,
+        uid: user.uid,
+        isAdmin: false, // Explicitly set to false for regular sign-in
+      };
+
+      // Save to localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
+
+      // Redirect logic
+      const returnUrl = location.state?.returnUrl || '/';
+      navigate(returnUrl);
+
     } catch (error) {
-      console.error("Sign in error:", error);
-      setError("Invalid email or password");
+      console.error("Error signing in:", error);
+      setError(
+        error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password'
+          ? "Invalid email or password"
+          : "An error occurred during sign in"
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // Clear any existing auth data on component mount
-  useEffect(() => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('redirectAfterLogin');
-  }, []);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        handleSuccessfulLogin(user);
-      }
-    });
-
-    // Check if user is already authenticated via localStorage
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (storedUser && token) {
-      const returnUrl = location.state?.returnUrl || '/preorder';
-      navigate(returnUrl, { replace: true });
-    }
-
-    return () => unsubscribe();
-  }, [auth, navigate, location]);
 
   return (
     <section className="m-8 flex gap-4">
@@ -120,6 +132,18 @@ export function SignIn() {
           <Typography variant="h2" className="font-bold mb-4">Sign In</Typography>
           <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">Enter your email and password to Sign In.</Typography>
         </div>
+
+        {/* Show message if it exists */}
+        {message && (
+          <div className="mt-4 mb-8 mx-auto w-80 max-w-screen-lg lg:w-1/2">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+              <Typography variant="paragraph" color="blue" className="font-medium">
+                {message}
+              </Typography>
+            </div>
+          </div>
+        )}
+
         <form className="mt-8 mb-2 mx-auto w-80 max-w-screen-lg lg:w-1/2" onSubmit={handleSubmit}>
           {error && (
             <Typography variant="small" color="red" className="mb-4 text-center">
@@ -157,6 +181,15 @@ export function SignIn() {
           </div>
           <Button className="mt-6" fullWidth type="submit">
             Sign In
+          </Button>
+
+          <Button 
+            variant="outlined"
+            className="mt-2" 
+            fullWidth 
+            onClick={() => navigate('/admin-login')}
+          >
+            Admin Login
           </Button>
 
           <div className="space-y-4 mt-8">

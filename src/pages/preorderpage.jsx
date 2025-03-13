@@ -48,7 +48,7 @@ function PreorderPage() {
       { 
         id: 1, 
         name: 'Pizza', 
-        price: 100, 
+        price: 299, 
         description: 'Delicious Italian pizza with fresh toppings',
         category: 'lunch',
         image: '/img/pizza.jpg',
@@ -69,8 +69,8 @@ function PreorderPage() {
       },
       { 
         id: 2, 
-        name: 'Burger', 
-        price: 120, 
+        name: 'Classic Burger', 
+        price: 199, 
         description: 'Juicy beef burger with cheese and veggies',
         category: 'snacks',
         image: '/img/burger.jpg',
@@ -84,7 +84,7 @@ function PreorderPage() {
         },
         preparationTime: '15-20 mins',
         spicyLevel: 'Mild',
-        isVegetarian: false,
+        isVegetarian: true,
         allergens: ['Dairy', 'Gluten', 'Soy'],
         servingSize: '1 piece',
         rating: 4.6
@@ -92,7 +92,7 @@ function PreorderPage() {
       { 
         id: 3, 
         name: 'Cappuccino', 
-        price: 80, 
+        price: 149, 
         description: 'Rich and creamy Italian coffee',
         category: 'beverages',
         image: '/img/Cappuccino.jpg',
@@ -114,7 +114,7 @@ function PreorderPage() {
       {
         id: 4,
         name: 'Chocolate Cake',
-        price: 300,
+        price: 399,
         description: 'Decadent chocolate cake with rich frosting',
         category: 'desserts',
         image: '/img/cake.jpg',
@@ -478,9 +478,13 @@ function PreorderPage() {
                   
                   {/* Tags and additional info */}
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {item.isVegetarian && (
+                    {item.isVegetarian ? (
                       <span className="bg-green-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
                         Vegetarian
+                      </span>
+                    ) : (
+                      <span className="bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
+                        Non-Vegetarian
                       </span>
                     )}
                     <span className="bg-blue-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">

@@ -147,7 +147,7 @@ export function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
-                name: "Classic Margherita",
+                name: "Pizza",
                 restaurant: "Hangout Cafe",
                 price: "₹299",
                 image: "/img/pizza.jpg",
@@ -155,7 +155,7 @@ export function Home() {
                 orders: "1.2k+ orders this week"
               },
               {
-                name: "Chocolate Truffle Cake",
+                name: "Chocolate Cake",
                 restaurant: "Golden Bakery",
                 price: "₹399",
                 image: "/img/cake.jpg",
@@ -163,7 +163,7 @@ export function Home() {
                 orders: "800+ orders this week"
               },
               {
-                name: "Cold Coffee",
+                name: "Cappuccino",
                 restaurant: "Cafe House",
                 price: "₹149",
                 image: "/img/Cappuccino.jpg",
@@ -234,9 +234,9 @@ export function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                name: "Supreme Veggie Pizza",
+                name: "Pizza",
                 restaurant: "Hangout Cafe",
-                price: "₹349",
+                price: "₹299",
                 image: "/img/pizza.jpg",
                 tag: "New",
                 description: "Loaded with fresh vegetables and exotic herbs",
@@ -244,19 +244,19 @@ export function Home() {
                 itemId: "1"
               },
               {
-                name: "Blueberry Cheesecake",
+                name: "Chocolate Cake",
                 restaurant: "Golden Bakery",
-                price: "₹449",
+                price: "₹399",
                 image: "/img/cake.jpg",
-                tag: "Premium",
+                tag: "New",
                 description: "Rich and creamy with fresh blueberry topping",
                 restaurantId: "golden-bakery",
                 itemId: "4"
               },
               {
-                name: "Grilled Chicken Burger",
+                name: "Classic Burger",
                 restaurant: "TTmm",
-                price: "₹249",
+                price: "₹199",
                 image: "/img/burger.jpg",
                 tag: "Special",
                 description: "Juicy grilled chicken with special sauce",
