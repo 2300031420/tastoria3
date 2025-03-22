@@ -155,7 +155,7 @@ function Cart() {
                   </div>
                   
                   <button 
-                    onClick={() => navigate('/checkout')}
+                    onClick={() => navigate('/home')}
                     className="w-full bg-green-500 text-white py-3 xs:py-4 rounded-lg text-sm xs:text-base 
                       sm:text-lg font-semibold hover:bg-green-600 transition-colors shadow-md hover:shadow-lg"
                   >

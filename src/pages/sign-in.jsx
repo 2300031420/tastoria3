@@ -7,6 +7,7 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getAuth, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider, signInWithEmailAndPassword } from "firebase/auth";
 import { useState, useEffect } from "react";
+import { toast } from 'react-hot-toast';
 
 export function SignIn() {
   const location = useLocation();
@@ -53,15 +54,143 @@ export function SignIn() {
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    try {
+      // First, check if email contains 'admin'
+      if (email.toLowerCase().includes('admin')) {
+        setError("Please use the admin login page to access administrator features.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Make API call to backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Store user data and token
+      const userData = {
+        email: data.user.email,
+        uid: data.user.id,
+        displayName: data.user.name || email.split('@')[0],
+        isAdmin: false
+      };
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', data.token);
+
+      // Show success toast
+      toast.success('Signed in successfully!');
+
+      // Get the redirect path or use default
+      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/';
+      localStorage.removeItem('redirectAfterLogin');
+      
+      // Navigate to the stored path
+      navigate(redirectPath, { replace: true });
+
+    } catch (error) {
+      console.error("Error signing in:", error);
+      toast.error(error.message === 'Invalid email or password'
+        ? "Invalid email or password"
+        : "An error occurred during sign in"
+      );
+      setError(
+        error.message === 'Invalid email or password'
+          ? "Invalid email or password"
+          : "An error occurred during sign in"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setError("");
+      setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
-      console.log("Google sign-in successful:", result.user);
-      handleSuccessfulLogin(result.user);
+      
+      console.log("Google sign-in result:", result.user); // Debug log
+      
+      // Send Google user data to backend
+      const response = await fetch('http://localhost:5000/api/auth/google-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: result.user.displayName,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+          uid: result.user.uid,
+          token: await result.user.getIdToken()
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Backend response:", data); // Debug log
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Google sign-in failed');
+      }
+
+      // Store user data with all necessary fields
+      const userData = {
+        id: data.user.id, // Use backend-generated ID
+        email: result.user.email,
+        uid: result.user.uid,
+        displayName: result.user.displayName || result.user.email.split('@')[0],
+        photoURL: result.user.photoURL || "/img/default-avatar.png",
+        isAdmin: false,
+        phoneNumber: result.user.phoneNumber || "",
+        address: "",
+        memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      };
+
+      console.log("Storing user data:", userData); // Debug log
+
+      // Store user data and token from backend
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', data.token);
+
+      toast.success('Signed in with Google successfully!');
+
+      // Wait a brief moment to ensure data is stored
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Get the redirect path or use default
+      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
+      localStorage.removeItem('redirectAfterLogin');
+      
+      console.log("Navigating to:", redirectPath); // Debug log
+      
+      // Navigate to the stored path
+      window.location.href = redirectPath;
+
     } catch (error) {
       console.error("Google sign-in error:", error);
-      setError("Google sign-in failed. Please try again.");
+      toast.error(error.message || "Google sign-in failed. Please try again.");
+      setError(error.message || "Google sign-in failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -69,59 +198,46 @@ export function SignIn() {
     try {
       setError("");
       const result = await signInWithPopup(auth, facebookProvider);
-      console.log("Facebook sign-in successful:", result.user);
+      
+      // Send Facebook user data to backend
+      const response = await fetch('http://localhost:5000/api/auth/facebook-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: result.user.email,
+          displayName: result.user.displayName,
+          photoURL: result.user.photoURL,
+          uid: result.user.uid
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Facebook sign-in failed');
+      }
+
+      // Store user data
+      const userData = {
+        email: result.user.email,
+        uid: result.user.uid,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        isAdmin: false
+      };
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', data.token);
+
+      toast.success('Signed in with Facebook successfully!');
       handleSuccessfulLogin(result.user);
     } catch (error) {
       console.error("Facebook sign-in error:", error);
+      toast.error("Facebook sign-in failed. Please try again.");
       setError("Facebook sign-in failed. Please try again.");
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    try {
-      // Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Check if email contains 'admin' - if it does, reject the login
-      if (email.toLowerCase().includes('admin')) {
-        await auth.signOut();
-        setError("Please use the admin login page to access administrator features.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Get the ID token
-      const token = await user.getAccessToken();
-
-      // Store user data without admin privileges
-      const userData = {
-        email: user.email,
-        uid: user.uid,
-        isAdmin: false, // Explicitly set to false for regular sign-in
-      };
-
-      // Save to localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', token);
-
-      // Redirect logic
-      const returnUrl = location.state?.returnUrl || '/';
-      navigate(returnUrl);
-
-    } catch (error) {
-      console.error("Error signing in:", error);
-      setError(
-        error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password'
-          ? "Invalid email or password"
-          : "An error occurred during sign in"
-      );
-    } finally {
-      setIsLoading(false);
     }
   };
 

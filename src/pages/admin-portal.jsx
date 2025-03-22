@@ -14,6 +14,7 @@ import {
   QrCodeIcon,
   ClockIcon,
 } from "@heroicons/react/24/solid";
+import { toast } from 'react-hot-toast';
 
 export function AdminPortal() {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ export function AdminPortal() {
     avgOrderValue: 0,
     dailyOrders: 0
   });
+  const [menuItems, setMenuItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -47,6 +50,52 @@ export function AdminPortal() {
       dailyOrders: 24
     });
   }, [navigate]);
+
+  const addMenuItem = async (menuData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/menu', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(menuData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add menu item');
+      }
+
+      const newItem = await response.json();
+      setMenuItems(prev => [...prev, newItem]);
+      toast.success('Menu item added successfully');
+    } catch (error) {
+      console.error('Error adding menu item:', error);
+      toast.error('Failed to add menu item');
+    }
+  };
+
+  const fetchMenuItems = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:5000/api/menu');
+      if (!response.ok) {
+        throw new Error('Failed to fetch menu items');
+      }
+      const data = await response.json();
+      setMenuItems(data);
+    } catch (error) {
+      console.error('Error fetching menu items:', error);
+      toast.error('Failed to load menu items');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenuItems();
+  }, []);
 
   const StatCard = ({ title, value, icon: Icon, color, percentage }) => (
     <Card className="transform transition-all duration-300 hover:scale-102 hover:shadow-lg border border-gray-100">
@@ -164,6 +213,28 @@ export function AdminPortal() {
     { id: "1079", time: "2 hours ago", items: 2, status: "Completed", amount: 320 },
   ];
 
+  const menuManagementCard = (
+    <ActionCard
+      title="Menu Management"
+      description="Update menu items, categories, and pricing"
+      icon={Cog6ToothIcon}
+      color="purple"
+      actions={[
+        { 
+          label: "Manage Menu", 
+          onClick: () => navigate('/admin/menu')  // You'll need to create this route
+        },
+        { 
+          label: "Add New Item", 
+          onClick: () => {
+            // You can either navigate to a new page or open a modal
+            navigate('/admin/menu/add');  // Create this route
+          }
+        }
+      ]}
+    />
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -246,16 +317,7 @@ export function AdminPortal() {
               ]}
             />
             
-            <ActionCard
-              title="Menu Management"
-              description="Update menu items, categories, and pricing"
-              icon={Cog6ToothIcon}
-              color="purple"
-              actions={[
-                { label: "Edit Menu", onClick: () => navigate('/admin/menu') },
-                { label: "Add New Item", onClick: () => navigate('/admin/menu/add') }
-              ]}
-            />
+            {menuManagementCard}
             
             <ActionCard
               title="Table Reservations"
@@ -275,22 +337,49 @@ export function AdminPortal() {
               <CardHeader floated={false} shadow={false} className="rounded-none p-4 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <Typography variant="h5" color="blue-gray" className="font-bold">
-                    Recent Orders
+                    Menu Overview
                   </Typography>
                   <Button
                     variant="text"
                     color="blue"
                     size="sm"
-                    onClick={() => navigate('/admin/orders')}
+                    onClick={() => navigate('/admin/menu')}
                   >
                     View All
                   </Button>
                 </div>
               </CardHeader>
               <CardBody className="p-4">
-                {recentOrders.map((order) => (
-                  <RecentOrderCard key={order.id} order={order} />
-                ))}
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-40">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {menuItems.slice(0, 5).map((item) => (
+                      <div key={item._id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                          <div>
+                            <Typography variant="small" className="font-medium">
+                              {item.name}
+                            </Typography>
+                            <Typography variant="small" color="gray" className="text-xs">
+                              {item.category}
+                            </Typography>
+                          </div>
+                        </div>
+                        <Typography variant="small" className="font-medium">
+                          ₹{item.price}
+                        </Typography>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardBody>
             </Card>
           </div>

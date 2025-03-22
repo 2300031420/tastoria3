@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config"; // Import auth directly from config
+import { toast } from 'react-hot-toast';
 
 export function AdminLogin() {
   const navigate = useNavigate();
@@ -46,23 +47,8 @@ export function AdminLogin() {
         return;
       }
 
-      // Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Store admin user data
-      const userData = {
-        email: user.email,
-        uid: user.uid,
-        isAdmin: true,
-      };
-
-      // Save to localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', await user.getIdToken());
-
-      // Navigate to admin portal
-      navigate('/admin-portal');
+      // Call handleLogin with credentials
+      await handleLogin({ email, password });
 
     } catch (error) {
       console.error("Error signing in:", error);
@@ -86,6 +72,35 @@ export function AdminLogin() {
       setError(errorMessage);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (credentials) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store both token and user info
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify({
+          ...data.user,
+          isAdmin: true // Make sure this is set correctly from your backend
+        }));
+        navigate('/admin-portal');
+      } else {
+        toast.error(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Login failed');
     }
   };
 

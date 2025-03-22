@@ -44,144 +44,161 @@ function PreorderPage() {
   ];
 
   useEffect(() => {
-    const dummyMenu = [
-      { 
-        id: 1, 
-        name: 'Pizza', 
-        price: 299, 
-        description: 'Delicious Italian pizza with fresh toppings',
-        category: 'lunch',
-        image: '/img/pizza.jpg',
-        detailedDescription: 'Hand-tossed pizza with a perfect blend of mozzarella cheese, fresh vegetables, and our secret sauce',
-        ingredients: ['Mozzarella Cheese', 'Fresh Tomatoes', 'Bell Peppers', 'Olive Oil', 'Italian Herbs'],
-        nutritionalInfo: {
-          calories: '266 kcal',
-          protein: '12g',
-          carbs: '30g',
-          fat: '10g'
-        },
-        preparationTime: '20-25 mins',
-        spicyLevel: 'Medium',
-        isVegetarian: true,
-        allergens: ['Dairy', 'Gluten'],
-        servingSize: '8 inches',
-        rating: 4.8
-      },
-      { 
-        id: 2, 
-        name: 'Classic Burger', 
-        price: 199, 
-        description: 'Juicy beef burger with cheese and veggies',
-        category: 'snacks',
-        image: '/img/burger.jpg',
-        detailedDescription: 'Premium beef patty with melted cheese, fresh lettuce, tomatoes, and our special sauce',
-        ingredients: ['Beef Patty', 'Cheese', 'Lettuce', 'Tomatoes', 'Special Sauce'],
-        nutritionalInfo: {
-          calories: '350 kcal',
-          protein: '20g',
-          carbs: '25g',
-          fat: '15g'
-        },
-        preparationTime: '15-20 mins',
-        spicyLevel: 'Mild',
-        isVegetarian: true,
-        allergens: ['Dairy', 'Gluten', 'Soy'],
-        servingSize: '1 piece',
-        rating: 4.6
-      },
-      { 
-        id: 3, 
-        name: 'Cappuccino', 
-        price: 149, 
-        description: 'Rich and creamy Italian coffee',
-        category: 'beverages',
-        image: '/img/Cappuccino.jpg',
-        detailedDescription: 'Premium coffee beans brewed to perfection with steamed milk and foam',
-        ingredients: ['Espresso', 'Steamed Milk', 'Milk Foam'],
-        nutritionalInfo: {
-          calories: '120 kcal',
-          protein: '8g',
-          carbs: '12g',
-          fat: '4g'
-        },
-        preparationTime: '5-7 mins',
-        spicyLevel: 'None',
-        isVegetarian: true,
-        allergens: ['Dairy'],
-        servingSize: '240ml',
-        rating: 4.7
-      },
-      {
-        id: 4,
-        name: 'Chocolate Cake',
-        price: 399,
-        description: 'Decadent chocolate cake with rich frosting',
-        category: 'desserts',
-        image: '/img/cake.jpg',
-        detailedDescription: 'Three layers of moist chocolate cake with rich chocolate ganache and whipped cream',
-        ingredients: ['Dark Chocolate', 'Flour', 'Eggs', 'Butter', 'Sugar', 'Whipped Cream'],
-        nutritionalInfo: {
-          calories: '380 kcal',
-          protein: '5g',
-          carbs: '45g',
-          fat: '18g'
-        },
-        preparationTime: '10-15 mins',
-        spicyLevel: 'None',
-        isVegetarian: true,
-        allergens: ['Dairy', 'Eggs', 'Gluten'],
-        servingSize: '1 slice',
-        rating: 4.9
-      },
-      {
-        id: 5,
-        name: 'Ice Cream',
-        price: 150,
-        description: 'Creamy ice cream with a variety of flavors',
-        category: 'desserts',
-        image: '/img/icecream.jpg',
-        detailedDescription: 'Smooth and creamy ice cream made with fresh ingredients and natural flavors',
-        ingredients: ['Cream', 'Milk', 'Sugar', 'Natural Flavors'],
-        nutritionalInfo: {
-          calories: '200 kcal',
-          protein: '4g',
-          carbs: '25g',
-          fat: '10g'
-        },
-        preparationTime: '2-3 mins',
-        spicyLevel: 'None',
-        isVegetarian: true,
-        allergens: ['Dairy'],
-        servingSize: '2 scoops',
-        rating: 4.5
-      },
-      {
-        id: 6,
-        name: 'Pasta',
-        price: 200,
-        description: 'Creamy pasta with a variety of sauces',
-        category: 'breakfast',
-        image: '/img/pasta.jpg',
-        detailedDescription: 'Al dente pasta tossed in creamy sauce with fresh herbs and parmesan',
-        ingredients: ['Pasta', 'Cream Sauce', 'Parmesan', 'Fresh Herbs', 'Olive Oil'],
-        nutritionalInfo: {
-          calories: '320 kcal',
-          protein: '12g',
-          carbs: '40g',
-          fat: '14g'
-        },
-        preparationTime: '15-20 mins',
-        spicyLevel: 'Mild',
-        isVegetarian: true,
-        allergens: ['Dairy', 'Gluten'],
-        servingSize: '300g',
-        rating: 4.7
+    const fetchMenu = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5000/api/menu');
+        if (!response.ok) {
+          throw new Error('Failed to fetch menu');
+        }
+        const data = await response.json();
+        setMenu(data);
+        setFilteredMenu(data);
+      } catch (error) {
+        console.error('Error fetching menu:', error);
+        // Fallback to dummy data in case of error
+        const dummyMenu = [
+          { 
+            id: 1, 
+            name: 'Pizza', 
+            price: 299, 
+            description: 'Delicious Italian pizza with fresh toppings',
+            category: 'lunch',
+            image: '/img/pizza.jpg',
+            detailedDescription: 'Hand-tossed pizza with a perfect blend of mozzarella cheese, fresh vegetables, and our secret sauce',
+            ingredients: ['Mozzarella Cheese', 'Fresh Tomatoes', 'Bell Peppers', 'Olive Oil', 'Italian Herbs'],
+            nutritionalInfo: {
+              calories: '266 kcal',
+              protein: '12g',
+              carbs: '30g',
+              fat: '10g'
+            },
+            preparationTime: '20-25 mins',
+            spicyLevel: 'Medium',
+            isVegetarian: true,
+            allergens: ['Dairy', 'Gluten'],
+            servingSize: '8 inches',
+            rating: 4.8
+          },
+          { 
+            id: 2, 
+            name: 'Classic Burger', 
+            price: 199, 
+            description: 'Juicy beef burger with cheese and veggies',
+            category: 'snacks',
+            image: '/img/burger.jpg',
+            detailedDescription: 'Premium beef patty with melted cheese, fresh lettuce, tomatoes, and our special sauce',
+            ingredients: ['Beef Patty', 'Cheese', 'Lettuce', 'Tomatoes', 'Special Sauce'],
+            nutritionalInfo: {
+              calories: '350 kcal',
+              protein: '20g',
+              carbs: '25g',
+              fat: '15g'
+            },
+            preparationTime: '15-20 mins',
+            spicyLevel: 'Mild',
+            isVegetarian: true,
+            allergens: ['Dairy', 'Gluten', 'Soy'],
+            servingSize: '1 piece',
+            rating: 4.6
+          },
+          { 
+            id: 3, 
+            name: 'Cappuccino', 
+            price: 149, 
+            description: 'Rich and creamy Italian coffee',
+            category: 'beverages',
+            image: '/img/Cappuccino.jpg',
+            detailedDescription: 'Premium coffee beans brewed to perfection with steamed milk and foam',
+            ingredients: ['Espresso', 'Steamed Milk', 'Milk Foam'],
+            nutritionalInfo: {
+              calories: '120 kcal',
+              protein: '8g',
+              carbs: '12g',
+              fat: '4g'
+            },
+            preparationTime: '5-7 mins',
+            spicyLevel: 'None',
+            isVegetarian: true,
+            allergens: ['Dairy'],
+            servingSize: '240ml',
+            rating: 4.7
+          },
+          {
+            id: 4,
+            name: 'Chocolate Cake',
+            price: 399,
+            description: 'Decadent chocolate cake with rich frosting',
+            category: 'desserts',
+            image: '/img/cake.jpg',
+            detailedDescription: 'Three layers of moist chocolate cake with rich chocolate ganache and whipped cream',
+            ingredients: ['Dark Chocolate', 'Flour', 'Eggs', 'Butter', 'Sugar', 'Whipped Cream'],
+            nutritionalInfo: {
+              calories: '380 kcal',
+              protein: '5g',
+              carbs: '45g',
+              fat: '18g'
+            },
+            preparationTime: '10-15 mins',
+            spicyLevel: 'None',
+            isVegetarian: true,
+            allergens: ['Dairy', 'Eggs', 'Gluten'],
+            servingSize: '1 slice',
+            rating: 4.9
+          },
+          {
+            id: 5,
+            name: 'Ice Cream',
+            price: 150,
+            description: 'Creamy ice cream with a variety of flavors',
+            category: 'desserts',
+            image: '/img/icecream.jpg',
+            detailedDescription: 'Smooth and creamy ice cream made with fresh ingredients and natural flavors',
+            ingredients: ['Cream', 'Milk', 'Sugar', 'Natural Flavors'],
+            nutritionalInfo: {
+              calories: '200 kcal',
+              protein: '4g',
+              carbs: '25g',
+              fat: '10g'
+            },
+            preparationTime: '2-3 mins',
+            spicyLevel: 'None',
+            isVegetarian: true,
+            allergens: ['Dairy'],
+            servingSize: '2 scoops',
+            rating: 4.5
+          },
+          {
+            id: 6,
+            name: 'Pasta',
+            price: 200,
+            description: 'Creamy pasta with a variety of sauces',
+            category: 'breakfast',
+            image: '/img/pasta.jpg',
+            detailedDescription: 'Al dente pasta tossed in creamy sauce with fresh herbs and parmesan',
+            ingredients: ['Pasta', 'Cream Sauce', 'Parmesan', 'Fresh Herbs', 'Olive Oil'],
+            nutritionalInfo: {
+              calories: '320 kcal',
+              protein: '12g',
+              carbs: '40g',
+              fat: '14g'
+            },
+            preparationTime: '15-20 mins',
+            spicyLevel: 'Mild',
+            isVegetarian: true,
+            allergens: ['Dairy', 'Gluten'],
+            servingSize: '300g',
+            rating: 4.7
+          }
+        ];
+        setMenu(dummyMenu);
+        setFilteredMenu(dummyMenu);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setMenu(dummyMenu);
-    setFilteredMenu(dummyMenu);
-    setLoading(false);
+    };
+
+    fetchMenu();
   }, [restaurantId]);
 
   // Enhanced search and filter functionality
