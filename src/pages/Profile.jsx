@@ -61,96 +61,72 @@ export function Profile() {
   const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
-    // Check authentication status
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        // Store the intended destination
-        localStorage.setItem('redirectAfterLogin', '/profile');
-        // Navigate to sign-in with a message
-        navigate('/sign-in', { 
-          state: { 
-            message: "Please sign in to view your profile",
-            from: "/profile"
-          }
-        });
-        return;
-      }
-
-      setUser(user);
-      setEditedProfile({
-        displayName: user.displayName || "",
-        phoneNumber: user.phoneNumber || "",
-        address: localStorage.getItem(`${user.uid}_address`) || "",
-      });
-
-      // Load user data
-      loadUserData(user);
-      setIsLoading(false);
-    });
-
-    // Cleanup subscription
-    return () => unsubscribe();
-  }, [auth, navigate]);
-
-  const loadUserData = (user) => {
-    try {
-      // Mock active orders
-      const mockActiveOrders = [
-        {
-          id: "3",
-          date: "2024-03-20",
-          restaurant: "Hangout Cafe",
-          items: ["Supreme Pizza", "Garlic Bread"],
-          total: "₹550",
-          status: "Preparing",
-          estimatedDelivery: "20 minutes",
-          trackingSteps: [
-            { step: "Order Placed", completed: true },
-            { step: "Preparing", completed: true },
-            { step: "Out for Delivery", completed: false },
-            { step: "Delivered", completed: false },
-          ],
-        },
-      ];
-      setActiveOrders(mockActiveOrders);
-
-      // Mock order history
-      const mockOrderHistory = [
-        {
-          id: "1",
-          date: "2024-03-15",
-          restaurant: "Hangout Cafe",
-          items: ["Pizza Margherita", "Coke"],
-          total: "₹450",
-          status: "Delivered",
-          rating: 5,
-          review: "Excellent food and quick delivery!"
-        },
-        {
-          id: "2",
-          date: "2024-03-10",
-          restaurant: "TTMM",
-          items: ["Chicken Burger", "Fries"],
-          total: "₹350",
-          status: "Delivered",
-          rating: 4,
-          review: "Good food, but delivery was a bit late"
+    const loadProfile = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        
+        console.log("Stored user:", storedUser); // Debug log
+        console.log("Token:", token); // Debug log
+        
+        if (!storedUser || !token) {
+          console.log("No stored user or token found"); // Debug log
+          localStorage.setItem('redirectAfterLogin', '/profile');
+          navigate('/sign-in', { 
+            state: { 
+              message: "Please sign in to view your profile",
+              from: "/profile"
+            }
+          });
+          return;
         }
-      ];
-      setOrderHistory(mockOrderHistory);
 
-      // Add mock stats
-      setStats({
-        totalOrders: 15,
-        favoriteRestaurant: "TTmm Cafe",
-        memberSince: "January 2024",
-        rewardPoints: 750,
-        nextRewardAt: 1000,
-      });
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    }
-  };
+        setIsLoading(true);
+        
+        // Fetch profile data from backend
+        const response = await fetch('http://localhost:5000/api/profile', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        console.log("Profile response:", response); // Debug log
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        console.log("Profile data:", data); // Debug log
+
+        // Update user state with backend data
+        setUser(data.user);
+        setEditedProfile({
+          displayName: data.user.displayName || data.user.name,
+          phoneNumber: data.user.phoneNumber || '',
+          address: data.user.address || ''
+        });
+
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast.error('Failed to load profile data');
+        
+        // If there's an auth error, redirect to sign in
+        if (error.message.includes('unauthorized') || error.message.includes('invalid token')) {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          navigate('/sign-in');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [navigate]);
 
   // Show loading state
   if (isLoading) {
@@ -164,32 +140,76 @@ export function Profile() {
     );
   }
 
-  // If no user, return null (redirect will happen in useEffect)
-  if (!user) return null;
+  // If no user, show message
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
+        <Typography className="text-blue-gray-500">Please sign in to view your profile.</Typography>
+      </div>
+    );
+  }
 
   const handleEditProfile = async () => {
     try {
-      await updateProfile(auth.currentUser, {
-        displayName: editedProfile.displayName,
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/profile/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(editedProfile)
       });
-      
-      // Store additional info in localStorage
-      localStorage.setItem(`${auth.currentUser.uid}_address`, editedProfile.address);
-      localStorage.setItem(`${auth.currentUser.uid}_phone`, editedProfile.phoneNumber);
-      
-      setUser(auth.currentUser);
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
       setIsEditMode(false);
+      toast.success('Profile updated successfully');
+
+      // Update local storage
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      localStorage.setItem('user', JSON.stringify({
+        ...storedUser,
+        ...data.user
+      }));
+
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     }
   };
 
   const handleDeleteAccount = async () => {
     try {
-      await deleteUser(auth.currentUser);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/profile/delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Clear local storage
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+
+      toast.success('Account deleted successfully');
       navigate('/sign-in');
+
     } catch (error) {
-      console.error("Error deleting account:", error);
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
     }
   };
 
@@ -216,17 +236,35 @@ export function Profile() {
       await uploadBytes(storageRef, file);
       const photoURL = await getDownloadURL(storageRef);
 
-      // Update user profile
-      await updateProfile(user, { photoURL });
+      // Update user profile in backend
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/profile/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ photoURL })
+      });
 
-      // Update local state
+      if (!response.ok) {
+        throw new Error('Failed to update profile photo');
+      }
+
+      // Update local state and storage
       setUser({ ...user, photoURL });
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      localStorage.setItem('user', JSON.stringify({
+        ...storedUser,
+        photoURL
+      }));
       
-      // Show success message (if you have a toast notification system)
       toast.success('Profile photo updated successfully!');
     } catch (error) {
       console.error('Error uploading photo:', error);
       setUploadError('Failed to upload photo. Please try again.');
+      toast.error('Failed to upload photo');
     } finally {
       setIsUploading(false);
     }
@@ -271,10 +309,13 @@ export function Profile() {
             </div>
             <div className="text-center md:text-left text-white">
               <Typography variant="h3" className="mb-2">
-                {user?.displayName || "User"}
+                {user?.displayName || user?.name || "User"}
               </Typography>
               <Typography variant="paragraph" className="mb-4 opacity-80">
-                Member since {stats.memberSince}
+                Member since {new Date(user?.memberSince).toLocaleDateString('en-US', { 
+                  month: 'long',
+                  year: 'numeric'
+                })}
               </Typography>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 <Button variant="outlined" color="white" className="flex items-center gap-2">

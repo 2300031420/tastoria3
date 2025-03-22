@@ -7,6 +7,7 @@ import PreorderPage from './pages/preorderpage';
 import QRScanner from './components/QRScanner';
 import { AdminLogin } from "./pages/admin-login";
 import { AdminPortal } from "./pages/admin-portal";
+import { MenuManagement } from "./pages/admin/MenuManagement";
 
 // Regular user routes
 export const userRoutes = [
@@ -55,6 +56,9 @@ export const adminRoutes = [
 ];
 
 // Combine all routes for the router
-export const routes = [...userRoutes, ...adminRoutes];
+export const routes = [...userRoutes, ...adminRoutes, {
+  path: "/admin/menu",
+  element: <MenuManagement />,
+}];
 
 export default routes;

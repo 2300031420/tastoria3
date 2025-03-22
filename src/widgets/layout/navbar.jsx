@@ -100,24 +100,17 @@ export function Navbar({ brandName, routes, action }) {
       await signOut(auth);
       
       // Clear all localStorage items
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      localStorage.removeItem('redirectAfterLogin');
-      
-      // Clear any cart data
-      if (auth.currentUser?.uid) {
-        localStorage.removeItem(`cart_${auth.currentUser.uid}`);
-      }
+      localStorage.clear();
+      sessionStorage.clear();
       
       // Reset states
       setIsAuthenticated(false);
       setUser(null);
       setCartQuantity(0);
+      setOpenNav(false);
 
-      // Navigate to home page
+      // Navigate to home page and force a reload
       navigate('/', { replace: true });
-      
-      // Reload the page to ensure all states are reset
       window.location.reload();
     } catch (error) {
       console.error("Error signing out:", error);
