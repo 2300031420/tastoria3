@@ -12,6 +12,12 @@ import { FeatureCard } from "@/widgets/cards";
 import { featuresData } from "@/data";
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { CalendarIcon } from '@heroicons/react/24/outline';
+import { 
+  QrCodeIcon, 
+  ShoppingCartIcon, 
+  CalendarDaysIcon,
+  BuildingStorefrontIcon 
+} from "@heroicons/react/24/outline";
 
 export function Home() {
   const navigate = useNavigate();
@@ -88,8 +94,39 @@ export function Home() {
     }
   ];
 
+  const features = [
+    {
+      title: "Scan QR Code",
+      description: "Scan table QR code to place your order",
+      icon: QrCodeIcon,
+      path: "/qr-scanner",
+      color: "blue"
+    },
+    {
+      title: "Pre-order",
+      description: "Order your food in advance",
+      icon: ShoppingCartIcon,
+      path: "/preorder",
+      color: "green"
+    },
+    {
+      title: "Book Table",
+      description: "Reserve your table in advance",
+      icon: CalendarDaysIcon,
+      path: "/cafes",
+      color: "purple"
+    },
+    {
+      title: "Explore Cafes",
+      description: "Discover restaurants near you",
+      icon: BuildingStorefrontIcon,
+      path: "/cafes",
+      color: "orange"
+    }
+  ];
+
   return (
-    <>
+    <div className="min-h-screen bg-gray-100">
       <div className="relative flex h-[60vh] content-center items-center justify-center pt-16 pb-32">
         <div className="absolute top-0 h-full w-full bg-[url('/img/background-3.jpg')] bg-cover bg-center" />
         <div className="absolute top-0 h-full w-full bg-black/60 bg-cover bg-center" />
@@ -510,7 +547,7 @@ export function Home() {
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
 

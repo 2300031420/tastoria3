@@ -61,16 +61,14 @@ function PreorderModal() {
     return () => unsubscribe();
   }, [auth, navigateWithTransition]);
 
-  const handleRestaurantSelect = (e) => {
-    e.preventDefault();
-    if (selectedRestaurant) {
-      if (authStatus === 'authenticated') {
-        navigateWithTransition(`/preorder/${selectedRestaurant}`);
-      } else {
-        localStorage.setItem('redirectAfterLogin', `/preorder/${selectedRestaurant}`);
-        navigateWithTransition('/sign-in');
-      }
-      setIsModalOpen(false);
+  const handleRestaurantClick = (restaurantId) => {
+    if (authStatus === 'authenticated') {
+      navigate('/preorderpage', {
+        state: { restaurantId: restaurantId }
+      });
+    } else {
+      localStorage.setItem('redirectAfterLogin', '/preorderpage');
+      navigate('/sign-in');
     }
   };
 
@@ -116,7 +114,6 @@ function PreorderModal() {
                   className={`flex flex-col sm:flex-row gap-4 sm:gap-8 p-4 sm:p-6 border-2 rounded-xl 
                     cursor-pointer hover:border-blue-500 transition-all duration-300 hover:shadow-lg 
                     ${selectedRestaurant === restaurant.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-                  onClick={() => setSelectedRestaurant(restaurant.id)}
                 >
                   <div className="w-full sm:w-48 h-48 flex-shrink-0">
                     <img
@@ -144,7 +141,7 @@ function PreorderModal() {
                       {restaurant.description}
                     </p>
                     <button
-                      onClick={handleRestaurantSelect}
+                      onClick={() => handleRestaurantClick(restaurant.id)}
                       className="w-full sm:w-auto mt-2 sm:mt-4 bg-blue-500 text-white py-2.5 sm:py-3 px-6 sm:px-8 
                         rounded-lg text-base sm:text-lg font-semibold hover:bg-blue-600 transition-all 
                         duration-300 hover:shadow-md active:transform active:scale-95"

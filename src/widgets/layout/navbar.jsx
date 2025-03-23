@@ -8,11 +8,18 @@ import {
   Typography,
   Button,
   IconButton,
+  Breadcrumbs,
+  Menu,
+  MenuHandler,
+  MenuList,
+  MenuItem,
 } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon, ShoppingCartIcon } from "@heroicons/react/24/outline";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useCallback } from 'react';
 import { auth } from '../../firebase/config';
+import QRScanner from "@/components/QRScanner";
+import { toast } from "react-hot-toast";
 
 {/*const routes = [
   {
@@ -29,7 +36,7 @@ const setSecureCookie = (name, value, options = {}) => {
   document.cookie = `${name}=${value}; SameSite=Strict; Secure; ${Object.entries(options).map(([k, v]) => `${k}=${v}`).join('; ')}`;
 };
 
-export function Navbar({ brandName, routes, action }) {
+export function Navbar({ brandName, routes = [], action }) {
   const [openNav, setOpenNav] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [user, setUser] = useState(null);
@@ -37,6 +44,8 @@ export function Navbar({ brandName, routes, action }) {
   const isHomePage = location.pathname === '/';
   const navigate = useNavigate();
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+
   useEffect(() => {
     let isSubscribed = true;
     
@@ -200,6 +209,21 @@ export function Navbar({ brandName, routes, action }) {
       unsubscribe();
     };
   }, [auth]);
+
+  const handleQRScan = (data) => {
+    try {
+      // Assuming the QR code contains a valid URL or path
+      if (data.startsWith('http')) {
+        window.location.href = data;
+      } else {
+        navigate(data);
+      }
+    } catch (error) {
+      console.error("Error handling QR scan:", error);
+      toast.error("Invalid QR code");
+    }
+  };
+
   const navList = (
     <ul className="mb-4 mt-2 flex flex-col gap-2 text-inherit lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
       {routes.map(({ name, path, icon, href, target }, index) => (
@@ -358,6 +382,41 @@ export function Navbar({ brandName, routes, action }) {
           </div>
         </div>
       </Collapse>
+
+      {/* Add QR Scanner button */}
+      <Button
+        variant="text"
+        className="ml-auto h-6 w-6 text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
+        onClick={() => setIsQRScannerOpen(true)}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="h-6 w-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75z"
+          />
+        </svg>
+      </Button>
+
+      {/* QR Scanner Dialog */}
+      {isQRScannerOpen && (
+        <QRScanner
+          onClose={() => setIsQRScannerOpen(false)}
+          onScan={handleQRScan}
+        />
+      )}
     </MTNavbar>
   );
 }
@@ -371,11 +430,12 @@ Navbar.defaultProps = {
       </Button>
     </Link>
   ),
+  routes: [],
 };
 
 Navbar.propTypes = {
   brandName: PropTypes.node,
-  routes: PropTypes.arrayOf(PropTypes.object).isRequired,
+  routes: PropTypes.arrayOf(PropTypes.object),
   action: PropTypes.node,
 };
 

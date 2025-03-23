@@ -67,32 +67,19 @@ export function SignIn() {
         return;
       }
 
-      // Make API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      // Store user data and token
+      // Use Firebase email/password sign in
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Store user data
       const userData = {
-        email: data.user.email,
-        uid: data.user.id,
-        displayName: data.user.name || email.split('@')[0],
+        email: result.user.email,
+        uid: result.user.uid,
+        displayName: result.user.displayName || email.split('@')[0],
         isAdmin: false
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token', await result.user.getIdToken());
 
       // Show success toast
       toast.success('Signed in successfully!');
@@ -106,15 +93,8 @@ export function SignIn() {
 
     } catch (error) {
       console.error("Error signing in:", error);
-      toast.error(error.message === 'Invalid email or password'
-        ? "Invalid email or password"
-        : "An error occurred during sign in"
-      );
-      setError(
-        error.message === 'Invalid email or password'
-          ? "Invalid email or password"
-          : "An error occurred during sign in"
-      );
+      toast.error("Invalid email or password");
+      setError("Invalid email or password");
     } finally {
       setIsLoading(false);
     }
@@ -122,104 +102,9 @@ export function SignIn() {
 
   const handleGoogleSignIn = async () => {
     try {
-      setError("");
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       
-      console.log("Google sign-in result:", result.user); // Debug log
-      
-      // Send Google user data to backend
-      const response = await fetch('http://localhost:5000/api/auth/google-signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: result.user.displayName,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          uid: result.user.uid,
-          token: await result.user.getIdToken()
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Backend response:", data); // Debug log
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Google sign-in failed');
-      }
-
-      // Store user data with all necessary fields
-      const userData = {
-        id: data.user.id, // Use backend-generated ID
-        email: result.user.email,
-        uid: result.user.uid,
-        displayName: result.user.displayName || result.user.email.split('@')[0],
-        photoURL: result.user.photoURL || "/img/default-avatar.png",
-        isAdmin: false,
-        phoneNumber: result.user.phoneNumber || "",
-        address: "",
-        memberSince: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-      };
-
-      console.log("Storing user data:", userData); // Debug log
-
-      // Store user data and token from backend
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', data.token);
-
-      toast.success('Signed in with Google successfully!');
-
-      // Wait a brief moment to ensure data is stored
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Get the redirect path or use default
-      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
-      localStorage.removeItem('redirectAfterLogin');
-      
-      console.log("Navigating to:", redirectPath); // Debug log
-      
-      // Navigate to the stored path
-      window.location.href = redirectPath;
-
-    } catch (error) {
-      console.error("Google sign-in error:", error);
-      toast.error(error.message || "Google sign-in failed. Please try again.");
-      setError(error.message || "Google sign-in failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFacebookSignIn = async () => {
-    try {
-      setError("");
-      const result = await signInWithPopup(auth, facebookProvider);
-      
-      // Send Facebook user data to backend
-      const response = await fetch('http://localhost:5000/api/auth/facebook-signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          uid: result.user.uid
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Facebook sign-in failed');
-      }
-
       // Store user data
       const userData = {
         email: result.user.email,
@@ -230,7 +115,35 @@ export function SignIn() {
       };
 
       localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token', await result.user.getIdToken());
+
+      toast.success('Signed in successfully!');
+      navigate('/');
+
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Failed to sign in with Google');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    try {
+      setError("");
+      const result = await signInWithPopup(auth, facebookProvider);
+      
+      // Store user data
+      const userData = {
+        email: result.user.email,
+        uid: result.user.uid,
+        displayName: result.user.displayName,
+        photoURL: result.user.photoURL,
+        isAdmin: false
+      };
+
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', await result.user.getIdToken());
 
       toast.success('Signed in with Facebook successfully!');
       handleSuccessfulLogin(result.user);
@@ -315,6 +228,7 @@ export function SignIn() {
               className="flex items-center gap-2 justify-center shadow-md" 
               fullWidth
               onClick={handleGoogleSignIn}
+              disabled={isLoading}
             >
               <svg width="17" height="16" viewBox="0 0 17 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g clipPath="url(#clip0_1156_824)">
@@ -329,7 +243,7 @@ export function SignIn() {
                   </clipPath>
                 </defs>
               </svg>
-              <span>Sign in With Google</span>
+              {isLoading ? "Signing in..." : "Sign in With Google"}
             </Button>
             <Button 
               size="lg" 

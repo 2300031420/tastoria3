@@ -35,25 +35,22 @@ export function ChatBot() {
         if (message.includes("pizza")) {
             return {
                 text: "I'll show you our delicious pizza options!",
-                action: "navigateToItem",
+                action: "navigateToRestaurant",
                 restaurantId: "hangout-cafe",
-                itemId: "1",
                 requiresAuth: true
             };
         } else if (message.includes("burger")) {
             return {
                 text: "Let me show you our burger selection!",
-                action: "navigateToItem",
+                action: "navigateToRestaurant",
                 restaurantId: "ttmm",
-                itemId: "2",
                 requiresAuth: true
             };
         } else if (message.includes("cake") || message.includes("dessert")) {
             return {
                 text: "I'll show you our amazing cakes!",
-                action: "navigateToItem",
-                restaurantId: "golden-bakery",
-                itemId: "4",
+                action: "navigateToRestaurant",
+                restaurantId: "cafe-house",
                 requiresAuth: true
             };
         }
@@ -63,22 +60,22 @@ export function ChatBot() {
             if (message.includes("ttmm")) {
                 return {
                     text: "I'll take you to TTMM's page right away!",
-                    action: "navigate",
-                    cafeId: "ttmm",
+                    action: "navigateToRestaurant",
+                    restaurantId: "ttmm",
                     requiresAuth: true
                 };
             } else if (message.includes("hangout")) {
                 return {
                     text: "I'll show you Hangout Cafe's page!",
-                    action: "navigate",
-                    cafeId: "hangout-cafe",
+                    action: "navigateToRestaurant",
+                    restaurantId: "hangout-cafe",
                     requiresAuth: true
                 };
             } else if (message.includes("cafe house")) {
                 return {
                     text: "I'll take you to Cafe House's page!",
-                    action: "navigate",
-                    cafeId: "cafe-house",
+                    action: "navigateToRestaurant",
+                    restaurantId: "cafe-house",
                     requiresAuth: true
                 };
             }
@@ -88,30 +85,30 @@ export function ChatBot() {
         if (message.includes("ttmm")) {
             return {
                 text: "I'll take you to TTMM's page!",
-                action: "navigate",
-                cafeId: "ttmm",
+                action: "navigateToRestaurant",
+                restaurantId: "ttmm",
                 requiresAuth: true
             };
         } else if (message.includes("hangout")) {
             return {
                 text: "I'll show you Hangout Cafe's page!",
-                action: "navigate",
-                cafeId: "hangout-cafe",
+                action: "navigateToRestaurant",
+                restaurantId: "hangout-cafe",
                 requiresAuth: true
             };
         } else if (message.includes("cafe house")) {
             return {
                 text: "I'll take you to Cafe House's page!",
-                action: "navigate",
-                cafeId: "cafe-house",
+                action: "navigateToRestaurant",
+                restaurantId: "cafe-house",
                 requiresAuth: true
             };
         }
         else if (message.includes("golden bakery")) {
             return {
                 text: "I'll take you to Golden Bakery's page!",
-                action: "navigate",
-                cafeId: "golden-bakery",
+                action: "navigateToRestaurant",
+                restaurantId: "cafe-house",
                 requiresAuth: true
             };
         }
@@ -120,22 +117,22 @@ export function ChatBot() {
             if (message.includes("hangout")) {
                 return {
                     text: "I'll show you Hangout Cafe's menu right away!",
-                    action: "navigate",
-                    cafeId: "hangout-cafe",
+                    action: "navigateToRestaurant",
+                    restaurantId: "hangout-cafe",
                     requiresAuth: true
                 };
             } else if (message.includes("ttmm")) {
                 return {
                     text: "I'll take you to TTMM's menu!",
-                    action: "navigate",
-                    cafeId: "ttmm",
+                    action: "navigateToRestaurant",
+                    restaurantId: "ttmm",
                     requiresAuth: true
                 };
             } else if (message.includes("cafe house")) {
                 return {
                     text: "Let me show you Cafe House's menu!",
-                    action: "navigate",
-                    cafeId: "cafe-house",
+                    action: "navigateToRestaurant",
+                    restaurantId: "cafe-house",
                     requiresAuth: true
                 };
             } else {
@@ -150,8 +147,8 @@ export function ChatBot() {
             if (message.includes("ttmm")) {
                 return {
                     text: "I'll take you to TTMM's slot booking page!",
-                    action: "navigate",
-                    cafeId: "ttmm-slot",
+                    action: "navigateToRestaurant",
+                    restaurantId: "ttmm",
                     requiresAuth: true
                 };
             }
@@ -194,20 +191,14 @@ export function ChatBot() {
         };
     };
 
-    const handleNavigation = async (cafeId, requiresAuth, action = 'navigate', itemId = null) => {
+    const handleNavigation = async (restaurantId, requiresAuth, action = 'navigateToRestaurant') => {
         try {
-            console.log("Attempting navigation to:", cafeId, "with item:", itemId);
+            console.log("Attempting navigation to:", restaurantId);
             
             // Check authentication if required
             if (requiresAuth && !auth.currentUser) {
-                // Store the intended destination with item information
-                const redirectPath = action === 'navigateToItem' 
-                    ? `/preorder/${cafeId}?item=${itemId}`
-                    : cafeId.includes('slot') 
-                        ? `/book-slot/${cafeId.split('-')[0]}` 
-                        : `/preorder/${cafeId}`;
-                
-                localStorage.setItem('redirectAfterLogin', redirectPath);
+                // Store the intended destination
+                localStorage.setItem('redirectAfterLogin', '/preorderpage');
                 
                 setMessages(prev => [...prev, {
                     text: "You'll need to sign in first. I'll redirect you to the sign-in page.",
@@ -222,14 +213,13 @@ export function ChatBot() {
             }
 
             setIsOpen(false);
-            if (cafeId === 'ttmm-slot') {
-                navigate(`/book-slot/ttmm`);
-            } else if (action === 'navigateToItem') {
-                navigate(`/preorder/${cafeId}`, {
-                    state: { selectedItemId: itemId }
+            if (action === 'navigateToRestaurant') {
+                // Navigate to preorderpage with the selected restaurant
+                navigate('/preorderpage', {
+                    state: { restaurantId: restaurantId }
                 });
-            } else {
-                navigate(`/preorder/${cafeId}`);
+            } else if (restaurantId === 'ttmm-slot') {
+                navigate(`/book-slot/ttmm`);
             }
         } catch (error) {
             console.error("Navigation error:", error);
@@ -261,15 +251,8 @@ export function ChatBot() {
                 }]);
 
                 // Handle navigation if needed
-                if (response.action === "navigate" && response.cafeId) {
-                    setTimeout(() => handleNavigation(response.cafeId, response.requiresAuth), 1000);
-                } else if (response.action === "navigateToItem" && response.restaurantId && response.itemId) {
-                    setTimeout(() => handleNavigation(
-                        response.restaurantId, 
-                        response.requiresAuth,
-                        'navigateToItem',
-                        response.itemId
-                    ), 1000);
+                if (response.action === "navigateToRestaurant" && response.restaurantId) {
+                    setTimeout(() => handleNavigation(response.restaurantId, response.requiresAuth), 1000);
                 }
             }, 500);
         } catch (error) {

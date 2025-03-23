@@ -18,6 +18,10 @@ export function SignUp() {
     password: '',
     confirmPassword: ''
   });
+  const [showOTPInput, setShowOTPInput] = useState(false);
+  const [otp, setOTP] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [tempUserId, setTempUserId] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -47,7 +51,7 @@ export function SignUp() {
 
       console.log("Sending user data to backend:", userData); // Debug log
 
-      const response = await fetch('http://localhost:5000/api/auth/google-signup', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/google-signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,9 +103,10 @@ export function SignUp() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleInitialSubmit = async (e) => {
     e.preventDefault();
-    
+    setIsLoading(true);
+
     try {
       // Basic validation
       if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
@@ -114,31 +119,73 @@ export function SignUp() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
+      if (formData.password.length < 6) {
+        toast.error('Password must be at least 6 characters long');
+        return;
+      }
+
+      // Send verification OTP
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/send-verification-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Registration successful! Please sign in.');
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          confirmPassword: ''
-        });
-        navigate('/sign-in');
+        setTempUserId(data.tempUserId);
+        setShowOTPInput(true);
+        toast.success('OTP sent to your email');
       } else {
-        toast.error(data.message || 'Registration failed');
+        toast.error(data.message || 'Failed to send OTP');
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('Registration failed');
+      console.error('Error:', error);
+      toast.error('Something went wrong');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOTPVerification = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      console.log('Submitting OTP verification:', { tempId: tempUserId, otp }); // Debug log
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify-signup-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tempId: tempUserId,
+          otp
+        })
+      });
+
+      const data = await response.json();
+      console.log('Verification response:', data); // Debug log
+
+      if (response.ok) {
+        toast.success('Account created successfully!');
+        navigate('/sign-in');
+      } else {
+        toast.error(data.message || 'Verification failed');
+      }
+    } catch (error) {
+      console.error('Error in OTP verification:', error);
+      toast.error('Verification failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -155,7 +202,7 @@ export function SignUp() {
         <div className="text-center">
           <Typography variant="h2" className="font-bold mb-4">Join Us</Typography>
           <Typography variant="paragraph" color="blue-gray" className="text-lg font-normal">
-            Enter your details to register.
+            {showOTPInput ? 'Enter the verification code sent to your email.' : 'Enter your details to register.'}
           </Typography>
         </div>
         
@@ -174,88 +221,131 @@ export function SignUp() {
           <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
-        <form className="mt-4 mb-2 w-full max-w-sm" onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
-              Name
-            </Typography>
-            <Input
-              size="lg"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="Enter your name"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-          </div>
-          <div className="mb-4">
-            <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
-              Email
-            </Typography>
-            <Input
-              size="lg"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="name@mail.com"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-          </div>
-          <div className="mb-4">
-            <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
-              Password
-            </Typography>
-            <Input
-              size="lg"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="********"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-          </div>
-          <div className="mb-4">
-            <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
-              Confirm Password
-            </Typography>
-            <Input
-              size="lg"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              onPaste={(e) => {
-                e.preventDefault();
-                toast.error('Please type the password again for confirmation');
-              }}
-              placeholder="********"
-              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
-              labelProps={{
-                className: "before:content-none after:content-none",
-              }}
-            />
-          </div>
-          
-          <Button type="submit" className="mt-6" fullWidth>
-            Create Account
-          </Button>
+        {!showOTPInput ? (
+          <form className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96" onSubmit={handleInitialSubmit}>
+            <div className="mb-4">
+              <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
+                Name
+              </Typography>
+              <Input
+                size="lg"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Enter your name"
+                className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+                labelProps={{
+                  className: "before:content-none after:content-none",
+                }}
+              />
+            </div>
+            <div className="mb-4">
+              <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
+                Email
+              </Typography>
+              <Input
+                size="lg"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="name@mail.com"
+                className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+                labelProps={{
+                  className: "before:content-none after:content-none",
+                }}
+              />
+            </div>
+            <div className="mb-4">
+              <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
+                Password
+              </Typography>
+              <Input
+                size="lg"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="********"
+                className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+                labelProps={{
+                  className: "before:content-none after:content-none",
+                }}
+              />
+            </div>
+            <div className="mb-4">
+              <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
+                Confirm Password
+              </Typography>
+              <Input
+                size="lg"
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  toast.error('Please type the password again for confirmation');
+                }}
+                placeholder="********"
+                className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+                labelProps={{
+                  className: "before:content-none after:content-none",
+                }}
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="mt-6" 
+              fullWidth
+              disabled={isLoading}
+            >
+              {isLoading ? "Sending OTP..." : "Create Account"}
+            </Button>
+          </form>
+        ) : (
+          <form className="mt-8 mb-2 w-80 max-w-screen-lg sm:w-96" onSubmit={handleOTPVerification}>
+            <div className="mb-4">
+              <Typography variant="small" color="blue-gray" className="mb-2 font-medium">
+                Verification Code
+              </Typography>
+              <Input
+                size="lg"
+                value={otp}
+                onChange={(e) => setOTP(e.target.value)}
+                placeholder="Enter 6-digit code"
+                className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+                labelProps={{
+                  className: "before:content-none after:content-none",
+                }}
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="mt-6" 
+              fullWidth
+              disabled={isLoading}
+            >
+              {isLoading ? "Verifying..." : "Verify & Create Account"}
+            </Button>
 
-          <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
-            Already have an account?
-            <Link to="/sign-in" className="text-gray-900 ml-1">Sign in</Link>
-          </Typography>
-        </form>
+            <Button
+              variant="text"
+              className="mt-4"
+              fullWidth
+              onClick={() => setShowOTPInput(false)}
+            >
+              Change Details
+            </Button>
+          </form>
+        )}
+
+        <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
+          Already have an account?
+          <Link to="/sign-in" className="text-gray-900 ml-1">Sign in</Link>
+        </Typography>
       </div>
     </section>
   );
