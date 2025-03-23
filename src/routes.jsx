@@ -1,10 +1,10 @@
-import { Home } from "./pages/home";
+import { Home } from "@/pages/home";
 import { Profile } from "./pages/Profile";
-import { SlotBooking } from "./pages/SlotBooking";
-import { CafeList } from "./pages/CafeList";
+import { SlotBooking } from "@/pages/SlotBooking";
+import { CafeList } from "@/pages/CafeList";
 import PreorderModal from './pages/preorderModal';
-import PreorderPage from './pages/preorderpage';
-import QRScanner from './components/QRScanner';
+import PreorderPage from "@/pages/preorderpage";
+import QRScanner from "@/components/QRScanner";
 import { AdminLogin } from "./pages/admin-login";
 import { AdminPortal } from "./pages/admin-portal";
 import { MenuManagement } from "./pages/admin/MenuManagement";
@@ -12,29 +12,24 @@ import { MenuManagement } from "./pages/admin/MenuManagement";
 // Regular user routes
 export const userRoutes = [
   {
-    name: "home",
-    path: "/",
+    name: "Home",
+    path: "/home",
     element: <Home />,
   },
   {
-    name: "Slot-booking",
+    name: "Book Table",
     path: "/cafes",
     element: <CafeList />,
   },
   {
-    name: "pre-order",
-    path: "/preorder",
-    element: <PreorderModal />,
-    style: { color: "#2196F3" }
-  },
-  {
-    name: "Qr-scan",
-    path: "/scan",
+    name: "QR Scanner",
+    path: "/qr-scanner",
     element: <QRScanner />,
   },
   {
-    path: '/preorder/:restaurantId',
-    element: <PreorderPage />,
+    name: "Pre-order",
+    path: "/preorderModal",
+    element: <PreorderModal />,
   },
   {
     name: "profile",

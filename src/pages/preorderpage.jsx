@@ -460,57 +460,44 @@ function PreorderPage() {
         </div>
 
         {/* Menu Grid */}
-        <div className="px-3 sm:px-4 pt-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
+        <div className="px-2 sm:px-4 lg:px-6 pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6 lg:gap-8">
             {filteredMenu.map((item) => (
               <div
                 key={item.id}
                 onClick={() => handleOpenModal(item)}
-                className="relative h-[280px] bg-white rounded-2xl shadow-md overflow-hidden transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
+                className="relative bg-white rounded-xl shadow-md overflow-hidden transform transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
               >
-                {/* Image container with fixed aspect ratio */}
-                <div className="absolute inset-0">
+                {/* Image container - Increased height for larger screens */}
+                <div className="relative h-40 sm:h-48 md:h-56 lg:h-64">
                   <img 
                     src={item.image} 
                     alt={item.name} 
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    style={{ objectPosition: 'center center' }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
                 </div>
-                
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
-                
-                {/* Content overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1 mr-2">
-                      <h3 className="font-bold text-lg text-white mb-1 line-clamp-1">{item.name}</h3>
-                      <p className="text-sm text-gray-200 line-clamp-2 min-h-[40px]">{item.description}</p>
-                    </div>
-                    <div className="flex-shrink-0 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                      <span className="text-gray-800 font-semibold whitespace-nowrap">₹{item.price}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Tags and additional info */}
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {item.isVegetarian ? (
-                      <span className="bg-green-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
-                        Vegetarian
-                      </span>
-                    ) : (
-                      <span className="bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
-                        Non-Vegetarian
-                      </span>
-                    )}
-                    <span className="bg-blue-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white">
+
+                {/* Content overlay - Adjusted padding and text sizes */}
+                <div className="absolute bottom-3 sm:bottom-4 lg:bottom-5 left-3 sm:left-4 lg:left-5 text-white">
+                  <h3 className="text-base sm:text-lg lg:text-xl font-semibold line-clamp-1">{item.name}</h3>
+                  <p className="text-xs sm:text-sm lg:text-base line-clamp-1 opacity-90">{item.description}</p>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 lg:gap-3 mt-2">
+                    <span className="bg-green-500/90 px-2 py-1 rounded-full text-[10px] sm:text-xs lg:text-sm">
+                      {item.isVegetarian ? 'Veg' : 'Non-Veg'}
+                    </span>
+                    <span className="bg-blue-500/90 px-2 py-1 rounded-full text-[10px] sm:text-xs lg:text-sm">
                       {item.preparationTime}
                     </span>
-                    <span className="bg-yellow-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs text-white flex items-center gap-1">
+                    <span className="bg-yellow-500/90 px-2 py-1 rounded-full text-[10px] sm:text-xs lg:text-sm flex items-center gap-0.5">
                       <span>★</span> {item.rating}
                     </span>
                   </div>
+                </div>
+
+                {/* Price tag - Increased size for larger screens */}
+                <div className="absolute top-3 right-3 lg:top-4 lg:right-4 bg-white/90 backdrop-blur-sm px-2.5 py-1 lg:px-3 lg:py-1.5 rounded-full">
+                  <span className="text-sm sm:text-base lg:text-lg font-semibold">₹{item.price}</span>
                 </div>
               </div>
             ))}
